@@ -24,8 +24,10 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+drop policy if exists "read own profile" on public.profiles;
 create policy "read own profile"   on public.profiles for select using (auth.uid() = id);
-create policy "update own profile" on public.profiles for update using (auth.uid() = id);
+drop policy if exists "update own profile" on public.profiles;
+create policy "update own profile"   on public.profiles for update using (auth.uid() = id);
 
 -- A profile is created the moment an account is, so the app never meets a
 -- signed-in user it knows nothing about.
@@ -69,10 +71,14 @@ create index if not exists scripts_owner_updated
 alter table public.scripts enable row level security;
 
 -- The whole of the app's document security, in four lines.
+drop policy if exists "read own scripts" on public.scripts;
 create policy "read own scripts"   on public.scripts for select using (auth.uid() = owner);
-create policy "insert own scripts" on public.scripts for insert with check (auth.uid() = owner);
-create policy "update own scripts" on public.scripts for update using (auth.uid() = owner);
-create policy "delete own scripts" on public.scripts for delete using (auth.uid() = owner);
+drop policy if exists "insert own scripts" on public.scripts;
+create policy "insert own scripts"   on public.scripts for insert with check (auth.uid() = owner);
+drop policy if exists "update own scripts" on public.scripts;
+create policy "update own scripts"   on public.scripts for update using (auth.uid() = owner);
+drop policy if exists "delete own scripts" on public.scripts;
+create policy "delete own scripts"   on public.scripts for delete using (auth.uid() = owner);
 
 -- Last write wins, and the server decides what "last" means.
 create or replace function public.touch_updated_at()
@@ -105,7 +111,8 @@ create table if not exists public.subscriptions (
 
 alter table public.subscriptions enable row level security;
 
-create policy "read own subscription" on public.subscriptions for select using (auth.uid() = user_id);
+drop policy if exists "read own subscription" on public.subscriptions;
+create policy "read own subscription"   on public.subscriptions for select using (auth.uid() = user_id);
 -- No insert or update policy on purpose: only the service key may write here.
 
 -- What the app asks at startup: what am I entitled to, right now?
@@ -131,7 +138,8 @@ create table if not exists public.trials (
 );
 
 alter table public.trials enable row level security;
-create policy "read own trial" on public.trials for select using (auth.uid() = user_id);
+drop policy if exists "read own trial" on public.trials;
+create policy "read own trial"   on public.trials for select using (auth.uid() = user_id);
 
 create or replace function public.spend_trial(delta_ms bigint)
 returns bigint language plpgsql security definer set search_path = public
