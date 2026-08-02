@@ -192,6 +192,9 @@ export default function Sidebar({
                   <span className="doclist__icon" aria-hidden="true">↥</span>
                   <b>Import</b>
                   <input
+                    // File → Import reaches this input by name, so the menu
+                    // and the panel open the same picker.
+                    id="kirukals-import"
                     type="file"
                     accept={IMPORT_ACCEPT}
                     hidden

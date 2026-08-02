@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { TYPE_ORDER, TYPES } from '../screenplay/elements';
 import { isAdmin } from '../auth/session';
+import MenuBar from './MenuBar';
 import { formatLeft } from '../billing/trial';
 import '../styles/billing.css';
 import '../styles/community.css';
@@ -19,6 +20,7 @@ export default function TopBar({
   onExport,
   onPrint,
   onTitlePage,
+  menus,
   onFind,
   onComment,
   onWatermark,
@@ -66,6 +68,11 @@ export default function TopBar({
           <span className="brand__mark">◗</span>
           Kirukals
         </span>
+
+        {/* Everything the app can do lives here, so the bar itself can stay
+            almost empty. */}
+        <MenuBar menus={menus} />
+
         <input
           className="topbar__title"
           value={doc.titlePage?.title || ''}
@@ -91,25 +98,6 @@ export default function TopBar({
             </option>
           ))}
         </select>
-
-        <div className="btn-group">
-          <button className="btn" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">↶</button>
-          <button className="btn" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)">↷</button>
-        </div>
-
-        <div className="btn-group">
-          <button
-            className="btn"
-            onClick={() => setPrefs((p) => ({ ...p, zoom: Math.max(0.6, +(p.zoom - 0.1).toFixed(2)) }))}
-            title="Zoom out"
-          >−</button>
-          <span className="zoom-readout">{Math.round(prefs.zoom * 100)}%</span>
-          <button
-            className="btn"
-            onClick={() => setPrefs((p) => ({ ...p, zoom: Math.min(2, +(p.zoom + 0.1).toFixed(2)) }))}
-            title="Zoom in"
-          >+</button>
-        </div>
       </div>
 
       <div className="topbar__right">
@@ -172,8 +160,6 @@ export default function TopBar({
             Install
           </button>
         )}
-        <button className="btn" onClick={onTitlePage}>Title page</button>
-
         <button
           className="bell"
           onClick={() => onOpenProfile(unread ? 'alerts' : 'board')}
@@ -183,19 +169,6 @@ export default function TopBar({
           ⌂
           {unread > 0 && <span className="bell__count">{unread > 9 ? '9+' : unread}</span>}
         </button>
-
-        <div className="menu" ref={menuRef}>
-          <button className="btn btn--primary" onClick={() => setMenu((m) => !m)}>Export ▾</button>
-          {menu && (
-            <ul className="menu__list">
-              <li><button onClick={() => { setMenu(false); onPrint(); }}>Print / Save as PDF</button></li>
-              <li><button onClick={() => { setMenu(false); onExport('fountain'); }}>Fountain (.fountain)</button></li>
-              <li><button onClick={() => { setMenu(false); onExport('fdx'); }}>Final Draft (.fdx)</button></li>
-              <li><button onClick={() => { setMenu(false); onExport('txt'); }}>Plain text (.txt)</button></li>
-              <li><button onClick={() => { setMenu(false); onExport('json'); }}>Backup (.json)</button></li>
-            </ul>
-          )}
-        </div>
 
         <div className="menu" ref={accountRef}>
           <button

@@ -5,6 +5,7 @@ import Dock from './components/Dock';
 import PadEditor from './components/PadEditor';
 import HelpDesk from './components/HelpDesk';
 import PasswordDialog from './components/PasswordDialog';
+import { buildMenus } from './menus';
 import DownloadDialog from './components/DownloadDialog';
 import { isDesktopApp } from './downloads';
 import AnalysisReport from './components/AnalysisReport';
@@ -782,6 +783,26 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
     setJump({ id: el.id, pos: el.text.length, at: Date.now() });
   };
 
+  /** Open one of the production sheets, from wherever it was asked for. */
+  const openSheet = (sheet) => {
+    setPpSheet(sheet);
+    setSection('preproduction');
+    setPanelOpen(true);
+    setDocView(`pp:${sheet}`);
+  };
+
+  const menus = buildMenus({
+    doc, session, prefs, setPrefs, active, pinned,
+    canUndo, canRedo, undo, redo,
+    section, panelOpen, setSection, setPanelOpen,
+    setDialog, setDocView, openSheet, setActiveType,
+    newDoc, printScript, togglePin,
+    setCommentTick, setDualTick,
+    onOpenProfile, onSignOut,
+    onImport: () => document.getElementById('kirukals-import')?.click(),
+    onHelp: () => window.dispatchEvent(new CustomEvent('kirukals:help')),
+  });
+
   /* ---------------- global shortcuts ---------------- */
 
   useEffect(() => {
@@ -841,6 +862,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         onNewScript={newDoc}
         onShortcuts={() => setDialog('shortcuts')}
         onChangePassword={() => setDialog('password')}
+        menus={menus}
         savedAt={savedAt}
         syncState={syncState}
         session={session}

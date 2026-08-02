@@ -50,6 +50,13 @@ export default function HelpDesk() {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
+  // Help → Ask the helpdesk opens this panel from the menu bar.
+  useEffect(() => {
+    const show = () => setOpen(true);
+    window.addEventListener('kirukals:help', show);
+    return () => window.removeEventListener('kirukals:help', show);
+  }, []);
+
   const ask = (question) => {
     const q = question.trim();
     if (!q) return;
