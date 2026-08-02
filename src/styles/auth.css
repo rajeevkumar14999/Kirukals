@@ -1,0 +1,404 @@
+/* ------------------------------------------------------------------ *
+   Sign in / sign up — a lit stage on the left, a script page on the right.
+ * ------------------------------------------------------------------ */
+
+.auth {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ui-font);
+}
+
+.auth__theme {
+  position: absolute;
+  top: 16px; right: 18px;
+  z-index: 5;
+  width: 34px; height: 34px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+}
+.auth__theme:hover { border-color: var(--accent); }
+
+/* ----------------------------- the stage --------------------------- */
+
+.auth__stage {
+  position: relative;
+  overflow: hidden;
+  padding: 56px 56px 56px 74px;
+  display: flex;
+  align-items: center;
+  background:
+    radial-gradient(120% 90% at 15% 0%, #23272f 0%, #14171d 45%, #0c0e12 100%);
+  color: #e9ecf2;
+}
+
+/* Vignette + a whisper of film grain. */
+.auth__stage::after {
+  content: '';
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(75% 60% at 50% 45%, transparent 40%, rgb(0 0 0 / 0.55) 100%),
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 0.012) 0 1px, transparent 1px 3px);
+}
+
+/* 35mm perforations down the outer edge. */
+.auth__sprockets {
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 26px;
+  background: rgb(0 0 0 / 0.45);
+  border-right: 1px solid rgb(255 255 255 / 0.06);
+}
+.auth__sprockets::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: 7px;
+  width: 12px;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 0.16) 0 10px,
+      transparent 10px 26px
+    );
+  border-radius: 3px;
+}
+
+.auth__stage-inner { position: relative; z-index: 2; max-width: 520px; }
+
+.auth__brand {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
+  margin-bottom: 40px;
+}
+.auth__slate { color: var(--accent); font-size: 20px; }
+
+.auth__headline {
+  font-size: clamp(30px, 3.4vw, 46px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: 0 0 16px;
+}
+.auth__sub {
+  color: #a7b0bf;
+  font-size: 15px;
+  line-height: 1.55;
+  margin: 0 0 32px;
+  max-width: 44ch;
+}
+
+/* Sample scene, laid out with real screenplay indents in character units. */
+.auth__sample {
+  font-family: var(--script-font);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #cfd6e2;
+  border-left: 2px solid rgb(232 176 75 / 0.5);
+  padding: 4px 0 4px 18px;
+  margin-bottom: 34px;
+  min-height: 210px;
+}
+.sample { margin: 0; white-space: pre-wrap; }
+.sample--scene_heading { font-weight: 700; color: #fff; margin-bottom: 1em; }
+.sample--action { margin-bottom: 1em; max-width: 52ch; }
+.sample--character { margin-left: 14ch; }
+.sample--parenthetical { margin-left: 10ch; }
+.sample--dialogue { margin-left: 6ch; max-width: 34ch; margin-bottom: 1em; }
+.sample--transition { text-align: right; max-width: 52ch; }
+
+.sample__caret {
+  display: inline-block;
+  width: 0.6em; height: 1.05em;
+  margin-left: 1px;
+  background: var(--accent);
+  vertical-align: text-bottom;
+  animation: blink 1s steps(2, start) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+.auth__points { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.auth__points li {
+  position: relative;
+  padding-left: 22px;
+  color: #9aa4b4;
+  font-size: 13.5px;
+}
+.auth__points li::before {
+  content: '◗';
+  position: absolute; left: 0;
+  color: var(--accent);
+  font-size: 11px;
+}
+
+/* --------------------------- the script page ----------------------- */
+
+.auth__panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 28px;
+  overflow: auto;
+}
+
+.sheet {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 3px;
+  padding: 40px 40px 30px 54px;
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.35), 0 2px 0 rgb(0 0 0 / 0.08);
+}
+
+/* Three-hole punch down the binding edge: middle hole is painted on the strip
+   itself, the outer two are its pseudo-elements. */
+.sheet__holes {
+  --hole: color-mix(in srgb, var(--bg) 70%, #000);
+  position: absolute;
+  left: 20px; top: 12%; bottom: 12%;
+  width: 12px;
+  display: block;
+  background: radial-gradient(circle 6px at 6px 50%, var(--hole) 100%, transparent 0);
+}
+.sheet__holes::before,
+.sheet__holes::after {
+  content: '';
+  position: absolute; left: 0;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--hole);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.5);
+}
+.sheet__holes::before { top: 0; }
+.sheet__holes::after { bottom: 0; }
+
+.sheet__slug {
+  font-family: var(--script-font);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--ink) 45%, transparent);
+  margin: 0 0 26px;
+}
+
+.sheet__head { text-align: center; margin-bottom: 26px; }
+.sheet__title {
+  font-family: var(--script-font);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 5px;
+  margin: 0 0 10px;
+}
+.sheet__credit {
+  font-family: var(--script-font);
+  font-size: 12.5px;
+  color: color-mix(in srgb, var(--ink) 60%, transparent);
+  margin: 0;
+}
+
+.sheet__form { display: flex; flex-direction: column; gap: 15px; }
+
+.fld { display: flex; flex-direction: column; gap: 6px; }
+.fld label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+.fld input {
+  width: 100%;
+  background: color-mix(in srgb, var(--ink) 3%, var(--paper));
+  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  border-radius: 6px;
+  color: var(--ink);
+  font-family: var(--script-font);
+  font-size: 13.5px;
+  padding: 10px 12px;
+}
+.fld input::placeholder { color: color-mix(in srgb, var(--ink) 30%, transparent); }
+.fld input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.fld input.is-invalid { border-color: var(--danger); }
+.fld input:disabled { opacity: 0.6; }
+
+.fld__wrap { position: relative; display: flex; }
+.fld__reveal {
+  position: absolute; right: 6px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: 0;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+  cursor: pointer;
+  font-family: var(--ui-font);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 8px;
+}
+.fld__reveal:hover { color: var(--ink); }
+
+.fld__error { color: var(--danger); font-size: 11.5px; margin: 0; }
+
+.strength { display: flex; align-items: center; gap: 8px; }
+.strength__track {
+  flex: 1;
+  height: 3px;
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.strength__track i { display: block; height: 100%; border-radius: 3px; transition: width 0.2s; }
+.strength__track i[data-score='1'] { background: var(--danger); }
+.strength__track i[data-score='2'] { background: #d98634; }
+.strength__track i[data-score='3'] { background: #d9b234; }
+.strength__track i[data-score='4'],
+.strength__track i[data-score='5'] { background: #4fa96a; }
+.strength span {
+  font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
+.remember {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px;
+  color: color-mix(in srgb, var(--ink) 65%, transparent);
+  cursor: pointer;
+}
+
+.sheet__alert {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+  border-radius: 6px;
+  color: color-mix(in srgb, var(--danger) 80%, #000);
+  font-size: 12.5px;
+  margin: 0;
+  padding: 9px 11px;
+}
+
+.sheet__submit {
+  background: var(--accent);
+  border: 0;
+  border-radius: 6px;
+  color: var(--accent-ink);
+  cursor: pointer;
+  font-family: var(--ui-font);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-top: 4px;
+  padding: 12px;
+}
+.sheet__submit:hover:not(:disabled) { filter: brightness(1.06); }
+.sheet__submit:disabled { opacity: 0.65; cursor: default; }
+
+.sheet__switch {
+  font-size: 12.5px;
+  margin: 0;
+  text-align: center;
+  color: color-mix(in srgb, var(--ink) 60%, transparent);
+}
+.sheet__switch button {
+  background: none; border: 0; padding: 0;
+  color: color-mix(in srgb, var(--accent) 75%, #000);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sheet__or {
+  position: relative;
+  text-align: center;
+  margin: 2px 0;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+}
+.sheet__or span {
+  position: relative;
+  top: -9px;
+  background: var(--paper);
+  color: color-mix(in srgb, var(--ink) 45%, transparent);
+  font-size: 11px;
+  padding: 0 10px;
+}
+
+.sheet__guest {
+  background: none;
+  border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+  border-radius: 6px;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--ui-font);
+  font-size: 13px;
+  padding: 10px;
+}
+.sheet__guest:hover:not(:disabled) { border-color: var(--ink); }
+
+.sheet__note {
+  color: color-mix(in srgb, var(--ink) 50%, transparent);
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 2px 0 0;
+  text-align: center;
+}
+
+.sheet__page-no {
+  font-family: var(--script-font);
+  font-size: 11px;
+  color: color-mix(in srgb, var(--ink) 35%, transparent);
+  margin: 22px 0 0;
+  text-align: right;
+}
+
+/* ----------------------------- responsive -------------------------- */
+
+@media (max-width: 980px) {
+  .auth { grid-template-columns: 1fr; }
+  .auth__stage { padding: 40px 32px 34px 50px; }
+  .auth__stage-inner { max-width: none; }
+  .auth__sample, .auth__points { display: none; }
+  .auth__brand { margin-bottom: 22px; }
+  .auth__sub { margin-bottom: 0; }
+  .auth__panel { padding: 28px 16px 48px; }
+}
+
+@media (max-width: 460px) {
+  .sheet { padding: 30px 22px 24px 40px; }
+  .sheet__holes { left: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sample__caret { animation: none; }
+}
+
+/* A guest whose ten minutes ran out lands back here — say why. */
+.sheet__expired {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 6px;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 18px;
+  padding: 9px 11px;
+}
+
+/* Google renders its own button into this slot — we only place it. */
+.sheet__google { display: grid; justify-items: center; gap: 10px; margin-bottom: 18px; }
+.sheet__google > div { min-height: 44px; }
+.sheet__google .sheet__or { width: 100%; }

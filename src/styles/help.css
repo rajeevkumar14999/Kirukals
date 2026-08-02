@@ -1,0 +1,199 @@
+/* ------------------------------------------------------------------ *
+   The helpdesk: a button in the corner, and the panel it opens.
+ * ------------------------------------------------------------------ */
+
+.helpdesk__button {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  background: var(--accent);
+  border: 0;
+  border-radius: 50%;
+  color: var(--accent-ink);
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+  transition: transform 0.14s, filter 0.14s;
+}
+.helpdesk__button:hover { transform: translateY(-2px); filter: brightness(1.06); }
+.helpdesk__button svg {
+  width: 25px; height: 25px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.helpdesk__button.is-open { background: var(--bg-3); color: var(--text); }
+
+.helpdesk {
+  position: fixed;
+  right: 22px;
+  bottom: 86px;
+  z-index: 120;
+  width: min(370px, calc(100vw - 44px));
+  max-height: min(560px, calc(100vh - 130px));
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 22px 60px rgb(0 0 0 / 0.5);
+  overflow: hidden;
+}
+
+.helpdesk header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--line);
+}
+.helpdesk header b { display: block; font-size: 14px; }
+.helpdesk header span { display: block; color: var(--text-dim); font-size: 11px; }
+.helpdesk__close {
+  background: none; border: 0; color: var(--text-dim);
+  cursor: pointer; font-size: 13px; padding: 2px 4px;
+}
+.helpdesk__close:hover { color: var(--text); }
+
+.helpdesk__thread {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 14px 15px;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  scrollbar-width: none;
+}
+.helpdesk__thread::-webkit-scrollbar { width: 0; }
+
+.helpdesk__msg { font-size: 13px; line-height: 1.55; }
+.helpdesk__msg p { margin: 0 0 8px; }
+.helpdesk__msg p:last-child { margin-bottom: 0; }
+
+.helpdesk__msg--you {
+  justify-self: end;
+  max-width: 85%;
+  padding: 8px 11px;
+  background: var(--accent);
+  border-radius: 12px 12px 3px 12px;
+  color: var(--accent-ink);
+  font-weight: 500;
+}
+.helpdesk__msg--help {
+  max-width: 95%;
+  padding: 10px 12px;
+  background: var(--bg-3);
+  border-radius: 12px 12px 12px 3px;
+  color: var(--text);
+}
+
+.helpdesk__keys {
+  list-style: none;
+  margin: 9px 0 0;
+  padding: 9px 0 0;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 4px;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+.helpdesk__keys kbd {
+  display: inline-block;
+  min-width: 62px;
+  margin-right: 7px;
+  padding: 1px 5px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text);
+  font: inherit;
+  font-size: 10px;
+}
+
+.helpdesk__where {
+  margin: 9px 0 0 !important;
+  color: var(--accent);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+}
+
+.helpdesk__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.helpdesk__chips--start { margin-top: 0; }
+.helpdesk__chips button {
+  padding: 6px 10px;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text-dim);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11.5px;
+  text-align: left;
+}
+.helpdesk__chips button:hover { border-color: var(--accent); color: var(--text); }
+
+.helpdesk__all { display: grid; gap: 4px; }
+.helpdesk__all b {
+  color: var(--text-dim);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.helpdesk__all button {
+  padding: 7px 9px;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+}
+.helpdesk__all button:hover { background: var(--bg-3); }
+
+.helpdesk footer {
+  display: flex;
+  gap: 7px;
+  padding: 11px 12px;
+  border-top: 1px solid var(--line);
+}
+.helpdesk footer input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+.helpdesk footer input:focus { outline: none; border-color: var(--accent); }
+
+.helpdesk__all-toggle {
+  padding: 0 12px 11px;
+  background: none;
+  border: 0;
+  color: var(--text-dim);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+}
+.helpdesk__all-toggle:hover { color: var(--text); }
+
+/* Presenting a deck takes the whole screen; help does not belong over it. */
+.deck-present ~ .helpdesk,
+.deck-present ~ .helpdesk__button { display: none; }
+
+@media print {
+  .helpdesk, .helpdesk__button { display: none; }
+}

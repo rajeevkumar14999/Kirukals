@@ -1,0 +1,40 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+release/
+
+# secrets
+.env
+
+# Desktop builds. Installers are ~100MB — GitHub refuses anything over 100MB,
+# and a repository is the wrong place for them anyway. Publish them as GitHub
+# Releases instead, which is also where the update feed can live.
+release/
+public/downloads/*.exe
+public/downloads/*.blockmap
+dist/downloads/
+
+# Fonts are copied out of node_modules by the build, not written by hand.
+# Keep them: the app needs them and they are small and licensed to redistribute.
+!public/fonts/

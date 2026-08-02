@@ -1,0 +1,316 @@
+/* ------------------------------------------------------------------ *
+   The pitch deck.
+
+   A deck is a design object before it is a document: it gets its own
+   typefaces, its own scale, and two themes — a cinematic dark and an
+   editorial light. Everything below is written in em so one slide can be
+   a thumbnail, a projection and a printed page without redrawing it.
+ * ------------------------------------------------------------------ */
+
+@font-face {
+  font-family: 'Deck Sans';
+  src: url('/fonts/Inter-400.woff2') format('woff2');
+  font-weight: 400; font-display: block;
+}
+@font-face {
+  font-family: 'Deck Sans';
+  src: url('/fonts/Inter-500.woff2') format('woff2');
+  font-weight: 500; font-display: block;
+}
+@font-face {
+  font-family: 'Deck Sans';
+  src: url('/fonts/Inter-600.woff2') format('woff2');
+  font-weight: 600; font-display: block;
+}
+@font-face {
+  font-family: 'Deck Sans';
+  src: url('/fonts/Inter-700.woff2') format('woff2');
+  font-weight: 700; font-display: block;
+}
+@font-face {
+  font-family: 'Deck Serif';
+  src: url('/fonts/Playfair-400.woff2') format('woff2');
+  font-weight: 400; font-display: block;
+}
+@font-face {
+  font-family: 'Deck Serif';
+  src: url('/fonts/Playfair-700.woff2') format('woff2');
+  font-weight: 700; font-display: block;
+}
+
+.slide {
+  /* One scale, used everywhere: nothing is sized by eye. */
+  --d-display: 3.1em;
+  --d-lead: 1.65em;
+  --d-body: 0.92em;
+  --d-small: 0.72em;
+  --d-micro: 0.6em;
+  --d-pad: 7.5%;
+
+  --d-ink: #14161a;
+  --d-dim: #6b7280;
+  --d-hair: #e3e5e9;
+  --d-paper: #fbfbfa;
+  --d-accent: #b0752a;
+
+  position: relative;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  flex-direction: column;
+  padding: var(--d-pad);
+  background: var(--d-paper);
+  color: var(--d-ink);
+  overflow: hidden;
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+  font-family: 'Deck Sans', -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: clamp(9px, 1.05vw, 15px);
+  font-feature-settings: 'kern' 1, 'liga' 1, 'cv05' 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cinematic: the room is dark, the screen is the only light. */
+.slide--dark {
+  --d-ink: #f4f4f2;
+  --d-dim: #9aa1ab;
+  --d-hair: #2b2f36;
+  --d-paper: #0e1013;
+  --d-accent: #d9a441;
+}
+
+/* --------------------------------- parts --------------------------------- */
+
+.slide__label {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  margin-bottom: 2.2em;
+  color: var(--d-accent);
+  font-size: var(--d-micro);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.slide__label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--d-hair);
+}
+
+/* The film's name and the slide number, on every slide but the first. */
+.slide__foot {
+  position: absolute;
+  left: var(--d-pad);
+  right: var(--d-pad);
+  bottom: 3.6%;
+  display: flex;
+  justify-content: space-between;
+  color: var(--d-dim);
+  font-size: var(--d-micro);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* --------------------------------- title --------------------------------- */
+
+.slide--title {
+  padding: 0;
+  background: #0b0d10 center / cover no-repeat;
+  color: #fff;
+}
+.slide__veil {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: var(--d-pad);
+  background:
+    linear-gradient(to top, rgb(0 0 0 / 0.9) 8%, rgb(0 0 0 / 0.45) 48%, rgb(0 0 0 / 0.15));
+}
+.slide__eyebrow {
+  color: rgb(255 255 255 / 0.72);
+  font-size: var(--d-micro);
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  margin-bottom: 1.4em;
+}
+.slide--title h2 {
+  margin: 0;
+  font-family: 'Deck Serif', Georgia, serif;
+  font-size: var(--d-display);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+}
+.slide__tagline {
+  margin: 0.55em 0 0;
+  max-width: 22ch;
+  font-size: var(--d-lead);
+  font-weight: 300;
+  line-height: 1.28;
+  color: rgb(255 255 255 / 0.88);
+}
+.slide__byline {
+  margin: 1.8em 0 0;
+  padding-top: 1.1em;
+  border-top: 1px solid rgb(255 255 255 / 0.28);
+  font-size: var(--d-small);
+  letter-spacing: 0.06em;
+  color: rgb(255 255 255 / 0.72);
+}
+
+/* ------------------------------- statement ------------------------------- */
+
+.slide blockquote {
+  margin: auto 0;
+  max-width: 26ch;
+  font-family: 'Deck Serif', Georgia, serif;
+  font-size: 2.05em;
+  font-weight: 400;
+  line-height: 1.24;
+  letter-spacing: -0.01em;
+}
+.slide__footer {
+  margin: 1.6em 0 0;
+  padding-top: 1em;
+  border-top: 1px solid var(--d-hair);
+  color: var(--d-dim);
+  font-size: var(--d-small);
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+/* --------------------------------- prose --------------------------------- */
+
+.slide__prose {
+  column-count: 2;
+  column-gap: 2.4em;
+  font-size: var(--d-body);
+  line-height: 1.62;
+  color: var(--d-ink);
+}
+.slide__prose p { margin: 0 0 0.9em; break-inside: avoid; }
+/* The opening paragraph sets the tone, so it is given a little more room. */
+.slide__prose p:first-child { font-size: 1.08em; line-height: 1.5; }
+
+/* --------------------------------- facts --------------------------------- */
+
+.slide__facts { margin: 0; display: grid; gap: 0; align-content: start; }
+.slide__facts div {
+  display: grid;
+  grid-template-columns: 9em 1fr;
+  gap: 1.4em;
+  align-items: baseline;
+  padding: 0.85em 0;
+  border-bottom: 1px solid var(--d-hair);
+}
+.slide__facts div:first-child { border-top: 1px solid var(--d-hair); }
+.slide__facts dt {
+  color: var(--d-dim);
+  font-size: var(--d-micro);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.slide__facts dd {
+  margin: 0;
+  font-size: 1.15em;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+/* -------------------------------- people --------------------------------- */
+
+.slide__people {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5em 1.2em;
+}
+.slide__people img,
+.slide__ph {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  background:
+    repeating-linear-gradient(45deg, var(--d-hair) 0 6px, transparent 6px 12px);
+  border-radius: 3px;
+  margin-bottom: 0.7em;
+  filter: grayscale(0.15) contrast(1.03);
+}
+.slide__people b {
+  display: block;
+  font-size: var(--d-body);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.slide__people i {
+  display: block;
+  margin-top: 0.15em;
+  font-style: normal;
+  font-size: var(--d-small);
+  color: var(--d-accent);
+}
+.slide__people em {
+  display: block;
+  margin-top: 0.3em;
+  font-style: normal;
+  font-size: var(--d-micro);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--d-dim);
+}
+
+/* -------------------------------- places --------------------------------- */
+
+.slide__places {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 2.4em;
+}
+.slide__places li {
+  display: grid;
+  gap: 0.2em;
+  padding: 0.85em 0;
+  border-bottom: 1px solid var(--d-hair);
+}
+.slide__places b { font-size: var(--d-body); font-weight: 600; letter-spacing: 0.02em; }
+.slide__places em {
+  font-style: normal;
+  font-size: var(--d-micro);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--d-dim);
+}
+.slide__places i { font-style: normal; font-size: var(--d-small); color: var(--d-accent); }
+
+/* -------------------------------- images --------------------------------- */
+
+/* References run to the edge of the slide: a mood board is not a table. */
+.slide--images { padding-bottom: 0; }
+.slide__grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 0.5em;
+  margin: 0 calc(var(--d-pad) * -1);
+  padding: 0 var(--d-pad) var(--d-pad);
+}
+.slide__grid img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 2px;
+  filter: contrast(1.04) saturate(0.96);
+}
+/* The first reference is given the weight of a still, not a thumbnail. */
+.slide__grid img:first-child { grid-column: span 2; grid-row: span 2; }

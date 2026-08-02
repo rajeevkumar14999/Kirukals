@@ -1,0 +1,176 @@
+/* ------------------------------------------------------------------ *
+   The project panel: the documents inside a script, and what you can
+   do with the project as a whole.
+ * ------------------------------------------------------------------ */
+
+.sidebar__sub--first { margin-top: 4px; }
+
+.doclist { list-style: none; margin: 0 0 6px; padding: 0; }
+.doclist li { display: flex; align-items: center; gap: 2px; }
+
+.doclist button,
+.doclist__file {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  background: none;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0 6px 6px 0;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.doclist button:hover,
+.doclist__file:hover { background: var(--bg-3); }
+
+.doclist b {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.doclist kbd { color: var(--text-dim); font: inherit; font-size: 11px; }
+.doclist__icon { width: 18px; color: var(--text-dim); text-align: center; }
+
+/* The document you are actually looking at. */
+.doclist button.is-current {
+  background: var(--bg-3);
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+.doclist button.is-current b { font-weight: 600; }
+.doclist button.is-current .doclist__icon { color: var(--accent); }
+
+.doclist__owner { color: var(--text-dim); font-size: 9px; font-style: normal; }
+.doclist__add { color: var(--text-dim); }
+.doclist__add:hover { color: var(--text); }
+
+.doclist--actions {
+  margin-top: 2px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+/* Whether a copy exists outside this browser — never dressed up. */
+.savestate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 9px 10px;
+  border-top: 1px solid var(--line);
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.savestate span {
+  display: grid;
+  place-items: center;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 10px;
+  font-weight: 700;
+}
+.savestate.is-ok span { background: #4fa96a; color: #062; }
+
+/* ------------------------------- portfolio ------------------------------- */
+
+.portfolio__bar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.portfolio__bar .sidebar__search { margin: 0; flex: 1 1 auto; }
+
+.portfolio { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 52vh; overflow-y: auto; }
+.portfolio li { display: flex; align-items: center; gap: 4px; }
+.portfolio li > button:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.portfolio li > button:first-child:hover { border-color: var(--accent); }
+.portfolio li.is-current > button:first-child { border-color: var(--accent); }
+.portfolio span { color: var(--text-dim); font-size: 12px; }
+
+/* --------------------------------- export -------------------------------- */
+
+.exportpick { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.exportpick button {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 11px 13px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.exportpick button:hover { border-color: var(--accent); }
+.exportpick span { color: var(--text-dim); font-size: 12px; }
+
+/* -------------------------------- backups -------------------------------- */
+
+.backup__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 12px;
+  background: var(--bg-3);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.backup__actions { display: flex; gap: 6px; }
+.hint--error { color: var(--danger); }
+
+/* ------------------------------ private pad ------------------------------ */
+
+.canvas--pad { display: block; padding: 28px 20px; }
+
+.pad {
+  max-width: 8.5in;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 70vh;
+}
+.pad__head { margin-bottom: 12px; }
+.pad__head h2 { margin: 0; font-size: 16px; }
+.pad__head p { margin: 4px 0 0; color: var(--text-dim); font-size: 12px; }
+
+.pad__sheet {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 60vh;
+  padding: 28px 32px;
+  background: var(--paper);
+  border: 0;
+  border-radius: 2px;
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.35);
+  color: var(--ink);
+  font-family: var(--script-font);
+  font-size: 12pt;
+  line-height: 1.6;
+  resize: none;
+}
+.pad__sheet:focus { outline: none; }

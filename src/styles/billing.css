@@ -1,0 +1,277 @@
+/* ------------------------------------------------------------------ *
+   Subscription & payments
+ * ------------------------------------------------------------------ */
+
+.sub { display: flex; flex-direction: column; gap: 16px; }
+
+.sub__plan {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  border-bottom: 1px solid var(--line); padding-bottom: 14px;
+}
+.sub__plan h3 { font-size: 16px; margin: 0 0 4px; }
+.sub__plan p { color: var(--text-dim); font-size: 12.5px; margin: 0; max-width: 42ch; }
+.sub__price { text-align: right; white-space: nowrap; }
+.sub__price b { display: block; font-size: 26px; line-height: 1.1; }
+.sub__price span { color: var(--text-dim); font-size: 11px; }
+
+.sub__features { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.sub__features li { color: var(--text-dim); font-size: 13px; padding-left: 20px; position: relative; }
+.sub__features li::before {
+  content: '✓'; position: absolute; left: 0; color: var(--accent); font-size: 12px;
+}
+
+.sub__state {
+  border-radius: var(--radius); font-size: 12.5px; line-height: 1.5;
+  margin: 0; padding: 10px 12px;
+  background: var(--bg-3); border: 1px solid var(--line);
+}
+.sub__state--ok { border-left: 3px solid #0ca30c; }
+.sub__state--warn { border-left: 3px solid var(--accent); }
+
+.sub__pay { display: flex; gap: 20px; flex-wrap: wrap; }
+
+.sub__qr {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+/* The QR is always on white regardless of theme — scanners need the contrast. */
+.sub__qr canvas {
+  background: #fff; border-radius: 8px; padding: 10px; display: block;
+}
+.sub__qr span { color: var(--text-dim); font-size: 11px; }
+
+.sub__details { flex: 1 1 260px; display: flex; flex-direction: column; gap: 12px; }
+.sub__steps { color: var(--text-dim); font-size: 12.5px; line-height: 1.6; margin: 0; padding-left: 18px; }
+
+.sub__kv { display: grid; gap: 8px; margin: 0; }
+.sub__kv > div { display: flex; align-items: baseline; gap: 10px; }
+.sub__kv dt {
+  color: var(--text-dim); font-size: 10px; letter-spacing: 0.06em;
+  text-transform: uppercase; width: 74px; flex: none;
+}
+.sub__kv dd { margin: 0; display: flex; align-items: center; gap: 8px; }
+.sub__kv code {
+  background: var(--bg-3); border: 1px solid var(--line); border-radius: 5px;
+  font-family: var(--script-font); font-size: 12.5px; padding: 3px 7px;
+  word-break: break-all;
+}
+
+.linkish {
+  background: none; border: 0; color: var(--text-dim); cursor: pointer;
+  font: inherit; font-size: 11px; padding: 0; text-decoration: underline;
+}
+.linkish:hover { color: var(--text); }
+
+.sub__open { text-align: center; text-decoration: none; }
+
+.sub__confirm {
+  border-top: 1px solid var(--line); padding-top: 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.sub__confirm label { color: var(--text-dim); font-size: 12px; }
+.sub__confirm-row { display: flex; gap: 8px; }
+.sub__confirm input {
+  flex: 1 1 auto;
+  background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--radius);
+  color: var(--text); font-family: var(--script-font); font-size: 14px;
+  letter-spacing: 0.08em; padding: 9px 11px;
+}
+.sub__confirm input:focus { outline: none; border-color: var(--accent); }
+.sub__error { color: var(--danger); font-size: 12px; margin: 0; }
+
+.sub__done { text-align: center; padding: 10px 0 4px; display: grid; gap: 8px; justify-items: center; }
+.sub__done h4 { font-size: 15px; margin: 0; }
+.sub__done p { font-size: 12.5px; margin: 0; color: var(--text-dim); }
+.sub__done code, .sub__history code {
+  background: var(--bg-3); border-radius: 4px; font-family: var(--script-font);
+  font-size: 12px; padding: 2px 6px;
+}
+
+.sub__history h4 { font-size: 13px; margin: 0 0 8px; }
+
+/* Status pills, shared with the admin payments panel. */
+.pill {
+  border-radius: 999px; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.04em; padding: 2px 8px; text-transform: uppercase;
+}
+.pill--pending { background: color-mix(in srgb, #fab219 22%, transparent); color: #fab219; }
+.pill--verified { background: color-mix(in srgb, #0ca30c 20%, transparent); color: #35b935; }
+.pill--rejected { background: color-mix(in srgb, var(--danger) 20%, transparent); color: var(--danger); }
+
+/* ------------------------- top bar status -------------------------- */
+
+.plan-chip {
+  background: none; border: 1px solid var(--line); border-radius: 999px;
+  color: var(--text-dim); cursor: pointer; font: inherit; font-size: 11px;
+  padding: 4px 11px; white-space: nowrap;
+}
+.plan-chip:hover { border-color: var(--accent); color: var(--text); }
+.plan-chip--pro { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.plan-chip--pending { border-color: #fab219; color: #fab219; }
+
+/* --------------------- admin payments panel ------------------------ */
+
+.pay-setup { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
+.pay-setup label { display: flex; flex-direction: column; gap: 5px; flex: 1 1 200px; }
+.pay-setup span { color: var(--text-dim); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; }
+.pay-setup input {
+  background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--radius);
+  color: var(--text); font: inherit; padding: 8px 10px;
+}
+.pay-setup input:focus { outline: none; border-color: var(--accent); }
+.pay-setup .saved { color: #35b935; font-size: 12px; }
+
+.pay-actions { display: flex; gap: 6px; }
+.pay-actions .btn { font-size: 12px; padding: 4px 9px; }
+
+/* ---------------------------- the paywall -------------------------- */
+
+/* A blocking modal must not look dismissible: the editor behind it is
+   veiled and neither Esc nor a backdrop click closes it. */
+.modal-backdrop--blocking {
+  background: rgb(0 0 0 / 0.78);
+  backdrop-filter: blur(3px);
+}
+
+.sub__wall {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: var(--radius);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 11px 13px;
+}
+.sub__wall b { color: var(--text); }
+
+.sub__wall-exit {
+  border-top: 1px solid var(--line);
+  color: var(--text-dim);
+  font-size: 12px;
+  margin: 0;
+  padding-top: 12px;
+  text-align: center;
+}
+
+/* The amount is the one number the payer must not have to hunt for. */
+.sub__qr-amount { font-size: 20px; line-height: 1.1; }
+.sub__amount { font-size: 15px; font-weight: 700; }
+
+.plan-chip--urgent {
+  border-color: var(--danger);
+  color: var(--danger);
+  font-weight: 700;
+}
+
+/* Guests see the countdown but have nothing to click — they cannot subscribe. */
+/* A read-out, not a control: the membership itself is managed in the profile. */
+.plan-chip--static { cursor: default; }
+.plan-chip--static:hover { border-color: var(--line); }
+.plan-chip--static.plan-chip--pro:hover { border-color: var(--accent); }
+.plan-chip--static.plan-chip--pending:hover { border-color: #fab219; }
+
+.plan-chip--guest { cursor: default; }
+.plan-chip--guest:hover { border-color: var(--line); color: var(--text-dim); }
+.plan-chip--guest.plan-chip--urgent:hover { border-color: var(--danger); color: var(--danger); }
+
+/* Waiting for the admin: a quiet pulse, not a progress bar — there is no
+   progress to report, only a decision that has not been made yet. */
+.sub__spinner {
+  width: 26px; height: 26px;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: sub-spin 0.9s linear infinite;
+}
+@keyframes sub-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .sub__spinner { animation: none; border-top-color: var(--accent); }
+}
+.sub__done-actions { display: flex; gap: 8px; margin-top: 4px; }
+
+
+/* --------------------- membership card, in the profile -------------------- */
+
+.plan-card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px 20px 20px;
+  max-width: 620px;
+}
+.plan-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.plan-card h2 { margin: 0; font-size: 17px; }
+.plan-card__price { margin: 4px 0 0; font-size: 26px; font-weight: 700; }
+.plan-card__price span { font-size: 13px; font-weight: 400; color: var(--text-dim); }
+
+.plan-card__state {
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text-dim);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.plan-card__state.is-active {
+  background: var(--accent); border-color: var(--accent);
+  color: var(--accent-ink); font-weight: 700;
+}
+.plan-card__state.is-pending { border-color: #fab219; color: #fab219; }
+
+.plan-card__features {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.plan-card__features li { display: flex; gap: 8px; }
+.plan-card__features li::before { content: '✓'; color: var(--accent); }
+
+.plan-card footer {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+.plan-card footer .hint { margin: 0; }
+
+/* ---------------------------- download the app --------------------------- */
+
+.dl__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.dl__head b { display: block; font-size: 15px; }
+.dl__head span { display: block; margin-top: 2px; color: var(--text-dim); font-size: 12px; }
+.dl__head .btn { text-decoration: none; white-space: nowrap; }
+
+.dl__points { margin: 0 0 16px; padding: 0; list-style: none; display: grid; gap: 6px; }
+.dl__points li {
+  display: flex;
+  gap: 8px;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.dl__points li::before { content: '✓'; color: var(--accent); }
+
+.dl h4 { margin: 0 0 6px; font-size: 13px; }
+.dl .modal__actions .btn { text-decoration: none; }
