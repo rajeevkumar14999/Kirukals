@@ -1,0 +1,5 @@
+# The installer is served from a release host, not from the site.
+public/downloads/*.exe
+public/downloads/*.blockmap
+release/
+node_modules

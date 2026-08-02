@@ -16,7 +16,20 @@ export const DESKTOP = {
   platform: 'Windows 10 and 11 · 64-bit',
 };
 
-export const downloadUrl = () => `${import.meta.env.BASE_URL}downloads/${DESKTOP.file}`;
+/**
+ * Where the installer is served from.
+ *
+ * Not from the site itself: it is a hundred megabytes, and a static host
+ * should not be asked to carry — or re-upload — that on every deploy. Point
+ * VITE_DOWNLOAD_URL at a release host (a GitHub release, or a public bucket)
+ * and the download button follows it. Without the setting it falls back to
+ * the local copy, which is what makes development work offline.
+ */
+export const downloadUrl = () => {
+  const base = import.meta.env.VITE_DOWNLOAD_URL;
+  if (!base) return `${import.meta.env.BASE_URL}downloads/${DESKTOP.file}`;
+  return base.endsWith('/') ? `${base}${DESKTOP.file}` : base;
+};
 
 export const prettySize = (bytes = DESKTOP.bytes) => `${Math.round(bytes / 1024 / 1024)} MB`;
 
