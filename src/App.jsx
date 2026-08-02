@@ -687,6 +687,17 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
           run: () => setDialog('download'),
         }]),
 
+    { group: true, label: 'Help' },
+    {
+      id: 'm-shortcuts', label: 'Keyboard shortcuts', shortcut: '?',
+      keywords: 'keys shortcuts help', run: () => setDialog('shortcuts'),
+    },
+    {
+      id: 'm-account', label: 'Profile & account',
+      keywords: 'account profile sign out membership',
+      run: () => onOpenProfile('board'),
+    },
+
     { group: true, label: 'Share' },
     { id: 'm-print', label: 'Print / Save as PDF', shortcut: 'Ctrl+P', run: () => printScript(doc) },
     { id: 'm-fountain', label: 'Export Fountain (.fountain)', run: () => exportAs('fountain') },
@@ -903,8 +914,6 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
           onMenu={() => setMenuOpen((m) => !m)}
           theme={prefs.theme}
           onToggleTheme={() => setPrefs((p) => ({ ...p, theme: p.theme === 'dark' ? 'light' : 'dark' }))}
-          onHelp={() => setDialog('shortcuts')}
-          onAccount={() => onOpenProfile('board')}
         />
 
         {menuOpen && <MenuPanel items={menuItems} onClose={() => setMenuOpen(false)} />}

@@ -111,7 +111,7 @@ function Item({ id, label, on, badge, onClick }) {
 }
 
 export default function Dock({
-  active, menuOpen, badges = {}, theme, onSelect, onMenu, onHelp, onAccount, onToggleTheme,
+  active, menuOpen, badges = {}, theme, onSelect, onMenu, onToggleTheme,
 }) {
   return (
     <nav className="dock" aria-label="Sections">
@@ -136,8 +136,6 @@ export default function Dock({
           label={theme === 'dark' ? 'Light' : 'Dark'}
           onClick={onToggleTheme}
         />
-        <Item id="help" label="Help" onClick={onHelp} />
-        <Item id="account" label="Account" badge={badges.account} onClick={onAccount} />
       </div>
     </nav>
   );
