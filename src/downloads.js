@@ -9,9 +9,9 @@
  * facts below. Nothing else needs touching.
  */
 export const DESKTOP = {
-  version: '1.0.4',
-  file: 'Kirukals-Setup-1.0.4.exe',
-  bytes: 101405346,
+  version: '1.0.5',
+  file: 'Kirukals-Setup-1.0.5.exe',
+  bytes: 101407972,
   built: '2026-08-02',
   platform: 'Windows 10 and 11 · 64-bit',
 };
