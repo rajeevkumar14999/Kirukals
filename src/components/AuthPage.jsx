@@ -12,11 +12,15 @@ import {
   accountsExist,
   signInWithGoogle,
   emailLooksValid,
+  mirrorRemoteAccount,
+  offlineAccountFor,
   passwordStrength,
   signIn,
+  signInOffline,
   signUp,
   startGuestSession,
 } from '../auth/session';
+import { isOffline, looksOffline } from '../backend/net';
 import '../styles/auth.css';
 
 const SCRIPT_LINES = [
@@ -68,6 +72,9 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
+  // Whether there is a network, watched rather than asked once: a laptop can
+  // lose its wifi while someone is still typing their password.
+  const [offline, setOffline] = useState(() => isOffline());
   const [busy, setBusy] = useState(false);
   const firstFieldRef = useRef(null);
   const googleRef = useRef(null);
@@ -137,6 +144,21 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
     }
   };
 
+  useEffect(() => {
+    const sync = () => setOffline(isOffline());
+    window.addEventListener('online', sync);
+    window.addEventListener('offline', sync);
+    return () => {
+      window.removeEventListener('online', sync);
+      window.removeEventListener('offline', sync);
+    };
+  }, []);
+
+  // What this device can do for the email that has been typed, with no network.
+  const localCopy = offline && hasServer() && emailLooksValid(values.email)
+    ? offlineAccountFor(values.email)
+    : null;
+
   const set = (key) => (e) => {
     setValues((v) => ({ ...v, [key]: e.target.value }));
     setErrors((x) => ({ ...x, [key]: undefined }));
@@ -166,6 +188,11 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
       // account is this browser's, exactly as it was.
       if (hasServer()) {
         if (isSignup) {
+          if (isOffline()) {
+            throw new Error(
+              'Creating an account needs a connection — the account has to exist on the server before it can exist here.',
+            );
+          }
           const result = await remoteSignUp({
             name: values.name,
             email: values.email,
@@ -176,9 +203,45 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
             setBusy(false);
             return;
           }
+          // Signing up hands over the password once; keep what is needed to
+          // recognise it again when the server cannot be asked.
+          await mirrorRemoteAccount({ session: result.session, password: values.password });
           onAuthed(result.session);
-        } else {
-          onAuthed(await remoteSignIn({ email: values.email, password: values.password }));
+          return;
+        }
+
+        // Offline, there is no point waiting for a request that cannot go
+        // anywhere — go straight to the copy on this device.
+        if (isOffline()) {
+          onAuthed(
+            await signInOffline({
+              email: values.email,
+              password: values.password,
+              remember: remember && !isDesktopApp(),
+            }),
+          );
+          return;
+        }
+
+        try {
+          const remoteSession = await remoteSignIn({
+            email: values.email,
+            password: values.password,
+          });
+          await mirrorRemoteAccount({ session: remoteSession, password: values.password });
+          onAuthed(remoteSession);
+        } catch (err) {
+          // A server that says no is answered; a server that says nothing is
+          // absent. Only the second one falls back — otherwise a wrong
+          // password could be let through by unplugging the network.
+          if (!looksOffline(err)) throw err;
+          onAuthed(
+            await signInOffline({
+              email: values.email,
+              password: values.password,
+              remember: remember && !isDesktopApp(),
+            }),
+          );
         }
         return;
       }
@@ -393,6 +456,19 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
             {!isSignup && isDesktopApp() && (
               <p className="remember remember--fixed">
                 Closing Kirukals signs you out. Your scripts stay where they are.
+              </p>
+            )}
+
+            {offline && hasServer() && !isSignup && (
+              <p className={`sheet__offline${localCopy?.hasPassword ? ' sheet__offline--ready' : ''}`}>
+                {localCopy?.hasPassword
+                  ? 'No connection — you will be signed in against the copy on this device, and your work will sync when the network is back.'
+                  : 'No connection. Sign-in works offline once you have signed in on this device with a connection at least once.'}
+              </p>
+            )}
+            {offline && hasServer() && isSignup && (
+              <p className="sheet__offline">
+                No connection — a new account has to be made on the server first.
               </p>
             )}
 

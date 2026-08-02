@@ -3,6 +3,7 @@ import { Modal } from './Dialogs';
 import { passwordStrength, changePassword as changeLocalPassword } from '../auth/session';
 import { isConfigured as hasServer } from '../backend/supabase';
 import { changeRemotePassword } from '../backend/account';
+import { mirrorRemoteAccount } from '../auth/session';
 
 /**
  * Changing a password.
@@ -47,6 +48,9 @@ export default function PasswordDialog({ session, onClose, onDone }) {
           currentPassword: current,
           newPassword: next,
         });
+        // The copy kept for signing in offline has to learn the new password
+        // too, or the next flight would lock this account out of its own work.
+        await mirrorRemoteAccount({ session, password: next });
       } else {
         await changeLocalPassword({
           uid: session.uid,

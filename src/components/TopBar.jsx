@@ -174,7 +174,12 @@ export default function TopBar({
                 <span>{session?.guest ? 'Guest session — drafts clear on sign out' : session?.email}</span>
                 {/* Where this account's work has got to, said where the
                     account is — not in the corner of the writing. */}
-                {syncState && syncState.state !== 'idle' && (
+                {session?.offline && (
+                  <em className="account__sync account__sync--error">
+                    Signed in on this device — the server has not been reached yet
+                  </em>
+                )}
+                {!session?.offline && syncState && syncState.state !== 'idle' && (
                   <em className={`account__sync account__sync--${syncState.state}`}>
                     {syncState.state === 'syncing' && 'Syncing with the server…'}
                     {syncState.state === 'synced' && (

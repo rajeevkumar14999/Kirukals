@@ -105,7 +105,9 @@ export default function App() {
   useEffect(() => {
     if (!hasServer() || session || signingOut.current) return;
     let cancelled = false;
-    currentRemoteSession().then((remote) => {
+    // A server that cannot be reached simply does not answer here, and the
+    // session this device remembers is left standing.
+    currentRemoteSession().catch(() => null).then((remote) => {
       if (signingOut.current) return;
       if (!cancelled && remote) {
         setScope(remote.uid);
@@ -114,6 +116,27 @@ export default function App() {
       }
     });
     return () => { cancelled = true; };
+  }, [session]);
+
+  /**
+   * Coming back onto the network.
+   *
+   * A session signed in against the copy on this device is not the real one,
+   * so when the connection returns the app asks the server whether it still
+   * recognises this browser. If it does, the session is swapped for the
+   * server's own and the sync runs; if it does not — the token has expired, or
+   * the app was reopened — nothing is disturbed and the work keeps saving
+   * where it is, until the next sign-in with a connection sends it up.
+   */
+  useEffect(() => {
+    if (!session?.offline || !hasServer()) return undefined;
+    const reconnect = async () => {
+      const remote = await currentRemoteSession().catch(() => null);
+      if (remote && remote.uid === session.uid) setSession(remote);
+    };
+    if (navigator.onLine) reconnect();
+    window.addEventListener('online', reconnect);
+    return () => window.removeEventListener('online', reconnect);
   }, [session]);
 
   useEffect(() => {
@@ -343,7 +366,9 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
    * is deleted on either side — a writer should never lose pages to a sync.
    */
   useEffect(() => {
-    if (!session.remote) return;
+    // An offline session has no token to speak to the server with. Its work is
+    // safe on this device and goes up the next time there is a connection.
+    if (!session.remote || session.offline) return;
     let cancelled = false;
 
     (async () => {

@@ -19,21 +19,34 @@ const asSession = (user, profile) => ({
 });
 
 async function profileFor(user) {
-  const { data } = await supabase
-    .from('profiles')
-    .select('name, role')
-    .eq('id', user.id)
-    .maybeSingle();
-  return data;
+  // The name and the role are worth having and not worth failing over: with
+  // no network this query cannot answer, and a session with a fallback name
+  // beats no session at all.
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('name, role')
+      .eq('id', user.id)
+      .maybeSingle();
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 /** Whoever is already signed in on this device, if anyone. */
 export async function currentRemoteSession() {
   if (!isConfigured()) return null;
-  const { data } = await supabase.auth.getSession();
-  const user = data?.session?.user;
-  if (!user) return null;
-  return asSession(user, await profileFor(user));
+  try {
+    // Reads the token this device already holds; it does not need the network
+    // unless the token has expired, which is why the whole thing is guarded.
+    const { data } = await supabase.auth.getSession();
+    const user = data?.session?.user;
+    if (!user) return null;
+    return asSession(user, await profileFor(user));
+  } catch {
+    return null;
+  }
 }
 
 export async function signUp({ name, email, password }) {
