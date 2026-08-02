@@ -17,7 +17,11 @@
     "desktop:build": "node scripts/google-config.cjs && vite build --base ./ && electron-builder --win -c.directories.output=%TEMP%/kirukals-release",
     "desktop:dir": "vite build --base ./ && electron-builder --win --dir -c.directories.output=%TEMP%/kirukals-release",
     "protect": "node scripts/protect.cjs",
-    "desktop:build:protected": "node scripts/google-config.cjs && vite build --base ./ && node scripts/protect.cjs && electron-builder --win -c.directories.output=%TEMP%/kirukals-release"
+    "desktop:build:protected": "node scripts/google-config.cjs && vite build --base ./ && node scripts/protect.cjs && electron-builder --win -c.directories.output=%TEMP%/kirukals-release",
+    "test": "node test/offline.test.mjs && node test/net.test.mjs",
+    "test:perf": "electron test/perf.cjs",
+    "test:smoke": "electron test/smoke.cjs",
+    "test:build": "vite build --base ./"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.111.0",
