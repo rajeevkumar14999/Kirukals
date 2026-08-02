@@ -172,11 +172,12 @@ export default function Editor({
     const target = elements[Math.max(0, i - 1)];
     const gone = elements[i];
     // A deleted line goes to the graveyard rather than nowhere — writers cut
-    // things they turn out to want back. Empty lines are not worth keeping.
+    // things they turn out to want back. Empty lines are not worth keeping,
+    // and neither is anything if the graveyard has been turned off.
     update((d) => ({
       ...d,
       elements: d.elements.filter((_, idx) => idx !== i),
-      graveyard: gone.text.trim()
+      graveyard: gone.text.trim() && prefs.graveyard !== false
         ? [
             { ...gone, buriedId: `g_${Date.now().toString(36)}`, at: Date.now() },
             ...(d.graveyard || []),
@@ -290,9 +291,9 @@ export default function Editor({
   /* ---------------- autocomplete ---------------- */
 
   const suggestions = useMemo(() => {
-    if (!activeEl || !sugOpen) return [];
+    if (!activeEl || !sugOpen || prefs.autocomplete === false) return [];
     return suggestFor(activeEl, vocab);
-  }, [activeEl, sugOpen, vocab]);
+  }, [activeEl, sugOpen, vocab, prefs.autocomplete]);
 
   // Park the dropdown just under the active element.
   useLayoutEffect(() => {
@@ -494,8 +495,9 @@ export default function Editor({
                   isFirst={first}
                   isActive={indexOf.get(el.id) === active}
                   dimmed={prefs.focusMode && indexOf.get(el.id) !== active}
-                  comments={el.comments}
+                  comments={prefs.commentMarks === false ? undefined : el.comments}
                   spellcheck={prefs.spellcheck !== false}
+                  lang={prefs.docLanguage || 'en-US'}
                   threadOpen={thread === el.id}
                   onOpenComments={setThread}
                   registerRef={registerRef}

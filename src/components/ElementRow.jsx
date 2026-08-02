@@ -10,6 +10,7 @@ function ElementRow({
   dimmed,
   comments,
   spellcheck,
+  lang,
   threadOpen,
   onOpenComments,
   registerRef,
@@ -76,6 +77,8 @@ function ElementRow({
           value={element.text}
           rows={1}
           spellCheck={spellcheck !== false && !cfg.uppercase}
+          // The dictionary the browser checks against, chosen in Customize.
+          lang={lang}
           placeholder={isActive ? cfg.label : ''}
           onChange={(e) => onChange(index, e.target.value)}
           onKeyDown={(e) => onKeyDown(e, index)}

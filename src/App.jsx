@@ -32,6 +32,7 @@ import {
 } from './components/ToolDialogs';
 import { renameCharacter } from './screenplay/tools';
 import ChatToasts from './components/ChatToasts';
+import SettingsDialog from './components/SettingsDialog';
 import AuthPage from './components/AuthPage';
 import Editor from './components/Editor';
 import Sidebar from './components/Sidebar';
@@ -219,6 +220,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
   const [index, setIndex] = useState(() => loadIndex());
   const [savedAt, setSavedAt] = useState(null);
   const [dialog, setDialog] = useState(null); // 'title' | 'find' | 'shortcuts'
+  const [settingsPage, setSettingsPage] = useState(null); // which Customize page
   const [jump, setJump] = useState(null);
   // Bumped by the toolbar's Comment button; the editor knows which line is live.
   const [commentTick, setCommentTick] = useState(0);
@@ -527,6 +529,24 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
     return () => clearTimeout(t);
   }, [doc, flushSave]);
 
+  // Closing with a save still in flight.
+  //
+  // The save is written on the way out either way — that is free and it is the
+  // work. The prompt on top of it is the setting's doing, and it is worth
+  // having because the local write is only half the job: the copy in the cloud
+  // needs the network, which a closing window does not wait for.
+  useEffect(() => {
+    const leaving = (e) => {
+      if (savedAt !== null) return;
+      flushSave(doc);
+      if (prefs.confirmClose === false) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', leaving);
+    return () => window.removeEventListener('beforeunload', leaving);
+  }, [savedAt, doc, flushSave, prefs.confirmClose]);
+
   /* ---------------- script management ---------------- */
 
   const openDoc = (id) => {
@@ -701,7 +721,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
     },
 
     { group: true, label: 'Share' },
-    { id: 'm-print', label: 'Print / Save as PDF', shortcut: 'Ctrl+P', run: () => printScript(doc) },
+    { id: 'm-print', label: 'Print / Save as PDF', shortcut: 'Ctrl+P', run: () => printScript(doc, prefs) },
     { id: 'm-fountain', label: 'Export Fountain (.fountain)', run: () => exportAs('fountain') },
     { id: 'm-fdx', label: 'Export Final Draft (.fdx)', run: () => exportAs('fdx') },
     { id: 'm-txt', label: 'Export plain text (.txt)', run: () => exportAs('txt') },
@@ -791,11 +811,14 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
     setDocView(`pp:${sheet}`);
   };
 
+  /** Customize, opened straight onto the page that was asked for. */
+  const openSettings = (page) => setSettingsPage(page);
+
   const menus = buildMenus({
     doc, session, prefs, setPrefs, active, pinned,
     canUndo, canRedo, undo, redo,
     section, panelOpen, setSection, setPanelOpen,
-    setDialog, setDocView, openSheet, setActiveType,
+    setDialog, setDocView, openSheet, setActiveType, openSettings,
     newDoc, printScript, togglePin,
     setCommentTick, setDualTick,
     onOpenProfile, onSignOut,
@@ -821,7 +844,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         setDialog('find');
       } else if (k === 'p') {
         e.preventDefault();
-        printScript(doc);
+        printScript(doc, prefs);
       } else if (k === 's') {
         e.preventDefault();
         flushSave(doc);
@@ -854,7 +877,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         prefs={prefs}
         setPrefs={setPrefs}
         onExport={exportAs}
-        onPrint={() => printScript(doc)}
+        onPrint={() => printScript(doc, prefs)}
         onTitlePage={() => setDialog('title')}
         onFind={() => setDialog('find')}
         onComment={() => setCommentTick((n) => n + 1)}
@@ -883,7 +906,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         </div>
       )}
 
-      {updateReady && (
+      {updateReady && prefs.notifyUpdates !== false && (
         <div className="notice notice--ok" role="status">
           <span>
             A newer version of Kirukals is ready. Reload to use it — your open script is already
@@ -908,7 +931,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         </div>
       )}
 
-      {!session.guest && (
+      {!session.guest && prefs.notifyChat !== false && (
         <ChatToasts session={session} onOpen={(threadId) => onOpenProfile('chat', threadId)} />
       )}
 
@@ -962,7 +985,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
           owner={session.name}
           backup={backup}
           onCommand={(id) => {
-            if (id === 'print') return printScript(doc);
+            if (id === 'print') return printScript(doc, prefs);
             if (id === 'export') return setDialog('exportpick');
             if (id === 'analyse') return setDocView('analysis');
             return setDialog(id);
@@ -989,7 +1012,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
             <AnalysisReport
               doc={doc}
               stats={stats}
-              onCommand={(id) => (id === 'print' ? printScript(doc) : setDialog(id))}
+              onCommand={(id) => (id === 'print' ? printScript(doc, prefs) : setDialog(id))}
             />
           ) : String(docView).startsWith('pp:') ? (
             <Preproduction
@@ -1078,6 +1101,14 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         />
       )}
       {dialog === 'shortcuts' && <ShortcutsDialog onClose={() => setDialog(null)} />}
+      {settingsPage && (
+        <SettingsDialog
+          prefs={prefs}
+          setPrefs={setPrefs}
+          page={settingsPage}
+          onClose={() => setSettingsPage(null)}
+        />
+      )}
       {dialog === 'password' && (
         <PasswordDialog session={session} onClose={() => setDialog(null)} />
       )}
@@ -1123,7 +1154,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         <NewDocumentDialog onCreate={addDocument} onClose={() => setDialog(null)} />
       )}
       {dialog === 'exportpick' && (
-        <ExportPickDialog onPick={exportAs} onPrint={() => printScript(doc)} onClose={() => setDialog(null)} />
+        <ExportPickDialog onPick={exportAs} onPrint={() => printScript(doc, prefs)} onClose={() => setDialog(null)} />
       )}
       {dialog === 'wordcount' && (
         <WordCountDialog doc={doc} stats={stats} onClose={() => setDialog(null)} />

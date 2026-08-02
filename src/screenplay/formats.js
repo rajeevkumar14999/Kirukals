@@ -2,6 +2,7 @@ import { TYPES, charsPerLine, makeElement } from './elements';
 import { fromMarkers, runs as styleRuns, toMarkers, toStyledRuns } from './markup';
 import { paginate, wrapLines } from './paginate';
 import { groupDual } from './dual';
+import { DEFAULTS as PRINT_DEFAULTS, PAPER } from '../settings';
 
 /* ------------------------------------------------------------------ *
  * Fountain (https://fountain.io) — the plain-text screenplay standard
@@ -240,14 +241,40 @@ export function toPlainText(doc) {
  * Print / PDF — a print window styled with real page geometry
  * ------------------------------------------------------------------ */
 
-export function printScript(doc) {
-  const tp = doc.titlePage || {};
+export function printScript(doc, opts) {
+  const cfg = { ...PRINT_DEFAULTS, ...opts };
+  const paper = PAPER[cfg.paper] || PAPER.letter;
+  const tp = cfg.pdfTitlePage === false ? {} : doc.titlePage || {};
   // The print window is served from about:blank, so font URLs must be absolute.
   const origin = window.location.origin;
 
+  // Which scene each heading is, counted through the whole script, so the
+  // numbers survive whatever the page breaks do.
+  const sceneNo = new Map();
+  doc.elements.forEach((el) => {
+    if (el.type === 'scene_heading') sceneNo.set(el.id, sceneNo.size + 1);
+  });
+
+  // A character speaking again after an interruption is marked (CONT'D), the
+  // convention that tells a reader this is the same speech resumed.
+  const contd = new Set();
+  if (cfg.contd) {
+    let last = null;
+    doc.elements.forEach((el) => {
+      if (el.type === 'character') {
+        const name = el.text.trim().toUpperCase();
+        if (name && name === last) contd.add(el.id);
+        last = name;
+      } else if (el.type === 'scene_heading') {
+        last = null;
+      }
+    });
+  }
+
   const elementHtml = (el) => {
-    const cfg = TYPES[el.type];
-    const text = cfg.uppercase ? el.text.toUpperCase() : el.text;
+    const type = TYPES[el.type];
+    const raw = el.type === 'character' && contd.has(el.id) ? `${el.text} (CONT'D)` : el.text;
+    const text = type.uppercase ? raw.toUpperCase() : raw;
     // Emphasis prints as emphasis.
     const html = styleRuns(text, el.styles)
       .map((run) => {
@@ -258,6 +285,12 @@ export function printScript(doc) {
         return body;
       })
       .join('');
+    // A shooting script carries the scene number in both margins, so it can be
+    // found from either side of an open binder.
+    if (cfg.sceneNumbers && el.type === 'scene_heading' && sceneNo.has(el.id)) {
+      const n = sceneNo.get(el.id);
+      return `<p class="el scene_heading"><i class="sn sn--l">${n}</i>${html || '&nbsp;'}<i class="sn sn--r">${n}</i></p>`;
+    }
     return `<p class="el ${el.type}">${html || '&nbsp;'}</p>`;
   };
 
@@ -286,7 +319,9 @@ export function printScript(doc) {
         )
         .join('\n');
       // Page one goes unnumbered, as a script always has.
-      const folio = i > 0 ? `<span class="folio">${i + 1}.</span>` : '';
+      const folio = cfg.pdfPageNumbers !== false && i > 0
+        ? `<span class="folio">${i + 1}.</span>`
+        : '';
       return `<section class="sheet">${stamp}${folio}\n${body}\n</section>`;
     })
     .join('\n');
@@ -319,20 +354,20 @@ export function printScript(doc) {
   }
 
   /* The sheet carries its own margins, so the page box adds none. */
-  @page { size: Letter; margin: 0; }
+  @page { size: ${paper.css}; margin: 0; }
   html, body { margin: 0; padding: 0; background: #fff; color: #000; }
   /* 12pt Courier at 6 lines to the inch — the measure every reader's sense of
      "one page, one minute" is calibrated against. */
-  body { font: 12pt/1 "Courier Prime", "Courier New", Courier, monospace; }
+  body { font: ${Number(cfg.pdfFontSize) || 12}pt/1 "Courier Prime", "Courier New", Courier, monospace; }
 
   .sheet {
     position: relative;
     box-sizing: border-box;
-    width: 8.5in;
-    height: 11in;
-    /* 1" top, 1" right, 1.5" left; the foot is a little shallower so a full
-       55-line page never spills a line onto a sheet of its own. */
-    padding: 1in 1in 0.75in 1.5in;
+    width: ${paper.w}in;
+    height: ${paper.h}in;
+    /* Set in Customize → Page. The foot defaults a little shallower than the
+       head so a full 55-line page never spills a line onto a sheet of its own. */
+    padding: ${cfg.marginTop}in ${cfg.marginRight}in ${cfg.marginBottom}in ${cfg.marginLeft}in;
     overflow: hidden;
     page-break-after: always;
     break-after: page;
@@ -341,7 +376,13 @@ export function printScript(doc) {
 
   /* Top right, half an inch down, followed by a period — where a page number
      has gone since scripts were typed. */
-  .folio { position: absolute; top: 0.5in; right: 1in; }
+  .folio { position: absolute; top: 0.5in; right: ${cfg.marginRight}in; }
+
+  /* Scene numbers sit outside the text block, in the margins either side. */
+  .sn { position: absolute; font-style: normal; }
+  .sn--l { left: -0.6in; }
+  .sn--r { right: -0.6in; }
+  p.el.scene_heading { position: relative; }
 
   /* Printed underneath the type, never over it, so the script stays readable.
      Colour adjustment is forced on: browsers drop pale greys when printing to
@@ -376,7 +417,11 @@ export function printScript(doc) {
      These carry the element tag as well as the class deliberately: a bare
      .character would lose to p.el above and the indent would silently
      collapse to the margin. */
-  p.el.scene_heading { font-weight: bold; margin-top: 2em; }
+  p.el.scene_heading {
+    margin-top: 2em;
+    font-weight: ${cfg.boldSceneHeadings === false ? 'normal' : 'bold'};
+    text-decoration: ${cfg.underlineSceneHeadings ? 'underline' : 'none'};
+  }
   p.el.action { margin-top: 1em; }
   p.el.character { margin-top: 1em; margin-left: 2.2in; width: 3.8in; }
   p.el.parenthetical { margin-left: 1.6in; width: 2.5in; }

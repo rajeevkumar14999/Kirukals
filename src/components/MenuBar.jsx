@@ -73,6 +73,29 @@ export default function MenuBar({ menus }) {
                 {items.map((item, n) =>
                   item.sep ? (
                     <li className="menubar__sep" key={`sep-${n}`} role="separator" />
+                  ) : item.items ? (
+                    // A submenu: the languages, where the choice is one of many
+                    // and does not deserve a page of its own.
+                    <li className="menubar__sub" key={item.label} role="none">
+                      <button role="menuitem" aria-haspopup="menu">
+                        <span>{item.label}</span>
+                        <i className="menubar__arrow" aria-hidden="true">›</i>
+                      </button>
+                      <ul className="menubar__list menubar__list--sub" role="menu">
+                        {item.items.map((sub) => (
+                          <li key={sub.label} role="none">
+                            <button role="menuitem" disabled={sub.disabled} title={sub.note || ''} onClick={() => run(sub)}>
+                              <span>
+                                {sub.on !== undefined && (
+                                  <i className="menubar__tick" aria-hidden="true">{sub.on ? '✓' : ''}</i>
+                                )}
+                                {sub.label}
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </li>
                   ) : (
                     <li key={item.label} role="none">
                       <button

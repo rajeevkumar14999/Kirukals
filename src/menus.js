@@ -1,5 +1,6 @@
 import { TYPES, TYPE_ORDER } from './screenplay/elements';
 import { isDesktopApp } from './downloads';
+import { DOC_LANGUAGES, UI_LANGUAGES } from './settings';
 
 /**
  * Every command the app has, in seven menus.
@@ -17,7 +18,7 @@ export function buildMenus(ctx) {
     doc, session, prefs, setPrefs, active, pinned,
     canUndo, canRedo, undo, redo,
     section, panelOpen, setSection, setPanelOpen,
-    setDialog, setDocView, openSheet, setActiveType,
+    setDialog, setDocView, openSheet, setActiveType, openSettings,
     newDoc, printScript, togglePin,
     setCommentTick, setDualTick,
     onOpenProfile, onSignOut, onImport, onHelp,
@@ -32,7 +33,7 @@ export function buildMenus(ctx) {
         { sep: true },
         { label: 'Import…', run: onImport },
         { label: 'Export…', run: () => setDialog('exportpick') },
-        { label: 'Print / Save as PDF', keys: 'Ctrl+P', run: () => printScript(doc) },
+        { label: 'Print / Save as PDF', keys: 'Ctrl+P', run: () => printScript(doc, prefs) },
         { sep: true },
         { label: 'Title page…', run: () => setDialog('title') },
         { label: 'Watermark…', run: () => setDialog('watermark') },
@@ -155,12 +156,6 @@ export function buildMenus(ctx) {
         { sep: true },
         { label: 'ReadAloud…', run: () => setDialog('readaloud') },
         { label: 'Writing schedule…', run: () => setDialog('schedule') },
-        { sep: true },
-        {
-          label: 'Spelling as I type',
-          on: prefs.spellcheck !== false,
-          run: () => setPrefs((p) => ({ ...p, spellcheck: p.spellcheck === false })),
-        },
       ],
     },
 
@@ -175,6 +170,44 @@ export function buildMenus(ctx) {
         { sep: true },
         { label: 'Budget', run: () => openSheet('budget') },
         { label: 'Pitch deck', run: () => openSheet('deck') },
+      ],
+    },
+
+    {
+      // Customize is where settings live, and it sits next to Help because
+      // that is where a person goes when the program is not behaving the way
+      // they want it to.
+      label: 'Customize',
+      items: [
+        ...[
+          ['editing', 'Editing…'],
+          ['display', 'Display…'],
+          ['format', 'Format…'],
+          ['notifications', 'Notifications…'],
+          ['pdf', 'PDF…'],
+          ['page', 'Page…'],
+          ['misc', 'Misc…'],
+        ].map(([id, label]) => ({ label, run: () => openSettings(id) })),
+        { sep: true },
+        {
+          label: 'Interface Language',
+          items: [
+            ...UI_LANGUAGES.map((l) => ({
+              label: l.label,
+              on: (prefs.uiLanguage || 'en') === l.id,
+              run: () => setPrefs((p) => ({ ...p, uiLanguage: l.id })),
+            })),
+            { label: 'Other languages are not translated yet', disabled: true },
+          ],
+        },
+        {
+          label: 'Document Language',
+          items: DOC_LANGUAGES.map((l) => ({
+            label: l.label,
+            on: (prefs.docLanguage || 'en-US') === l.id,
+            run: () => setPrefs((p) => ({ ...p, docLanguage: l.id })),
+          })),
+        },
       ],
     },
 
