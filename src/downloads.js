@@ -24,8 +24,14 @@ export const prettySize = (bytes = DESKTOP.bytes) => `${Math.round(bytes / 1024 
  * Already the desktop app? Then there is nothing to offer. Electron announces
  * itself in the user agent, and a packaged build is loaded from disk.
  */
+/**
+ * Already the desktop app? Then there is nothing to offer.
+ *
+ * The test is the preload bridge, which only our own packaged app installs,
+ * and the file:// protocol it is served from. Sniffing the user agent for
+ * "Electron" was wrong: plenty of ordinary browsers are built on Electron,
+ * and their users are on the web like anybody else.
+ */
 export const isDesktopApp = () =>
   typeof window !== 'undefined' &&
-  (Boolean(window.kirukals?.desktop) ||
-    /Electron/i.test(navigator.userAgent) ||
-    window.location.protocol === 'file:');
+  (Boolean(window.kirukals?.desktop) || window.location.protocol === 'file:');

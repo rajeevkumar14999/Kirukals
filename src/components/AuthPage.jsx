@@ -5,6 +5,7 @@ import { isDesktopApp } from '../downloads';
 import { isConfigured as hasServer } from '../backend/supabase';
 import {
   signIn as remoteSignIn,
+  signInWithGoogleRemote,
   signUp as remoteSignUp,
 } from '../backend/account';
 import {
@@ -85,10 +86,11 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
   // Google's own button, per their brand terms — and the only thing that can
   // produce a token their servers will vouch for.
   useEffect(() => {
+    // With a server, Google is handled by Supabase's redirect rather than by
+    // Google's own button, so this one is not rendered at all.
     // The installed app is served from disk, and a file:// page has no origin
-    // for Google to trust — their button cannot work there, so it is not
-    // offered rather than offered and broken.
-    if (isDesktopApp() || !googleConfigured() || !googleRef.current) return;
+    // for Google to trust — their button cannot work there either.
+    if (hasServer() || isDesktopApp() || !googleConfigured() || !googleRef.current) return;
     let cancelled = false;
     renderButton(googleRef.current, {
       theme,
@@ -237,7 +239,37 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
             <p className="sheet__credit">{isSignup ? 'Written by' : 'Continue your draft'}</p>
           </header>
 
-          {googleConfigured() && !isDesktopApp() && (
+          {hasServer() && !isDesktopApp() && (
+            <div className="sheet__google">
+              <button
+                type="button"
+                className="sheet__google-btn"
+                disabled={busy}
+                onClick={async () => {
+                  setFormError('');
+                  try {
+                    // This leaves the page: Google asks, then hands back to
+                    // Supabase, which returns here with a session in the URL.
+                    await signInWithGoogleRemote();
+                  } catch (err) {
+                    setFormError(err.message);
+                  }
+                }}
+              >
+                <svg viewBox="0 0 18 18" aria-hidden="true" width="17" height="17">
+                  <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z" />
+                  <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z" />
+                  <path fill="#FBBC05" d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z" />
+                  <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.42 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z" />
+                </svg>
+                Continue with Google
+              </button>
+              {googleError && <p className="fld__error">{googleError}</p>}
+              <div className="sheet__or"><span>or use an email address</span></div>
+            </div>
+          )}
+
+          {!hasServer() && googleConfigured() && !isDesktopApp() && (
             <div className="sheet__google">
               <div ref={googleRef} />
               {googleError && <p className="fld__error">{googleError}</p>}
