@@ -183,7 +183,8 @@ function createWindow() {
     },
   });
 
-  if (state.maximized) win.maximize();
+  // Deliberately not maximised yet: maximize() makes a hidden window visible,
+  // which put the app on screen behind the splash before it had finished.
   wire(win);
 
   // The splash is held for its full time even when the app is ready sooner —
@@ -199,6 +200,8 @@ function createWindow() {
     setTimeout(() => {
       closeSplash();
       if (!win.isDestroyed()) {
+        // Size it the way it was left, then show it — in that order.
+        if (state.maximized) win.maximize();
         win.show();
         win.focus();
       }
