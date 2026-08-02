@@ -14,10 +14,10 @@
     "preview": "vite preview",
     "app": "vite preview --port 4173 --open",
     "desktop": "electron .",
-    "desktop:build": "vite build --base ./ && electron-builder --win -c.directories.output=%TEMP%/kirukals-release",
+    "desktop:build": "node scripts/google-config.cjs && vite build --base ./ && electron-builder --win -c.directories.output=%TEMP%/kirukals-release",
     "desktop:dir": "vite build --base ./ && electron-builder --win --dir -c.directories.output=%TEMP%/kirukals-release",
     "protect": "node scripts/protect.cjs",
-    "desktop:build:protected": "vite build --base ./ && node scripts/protect.cjs && electron-builder --win -c.directories.output=%TEMP%/kirukals-release"
+    "desktop:build:protected": "node scripts/google-config.cjs && vite build --base ./ && node scripts/protect.cjs && electron-builder --win -c.directories.output=%TEMP%/kirukals-release"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.111.0",

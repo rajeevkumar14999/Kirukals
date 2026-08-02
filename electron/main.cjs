@@ -2,6 +2,7 @@ const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { autoUpdater } = require('electron-updater');
+const { signInWithGoogle } = require('./google-auth.cjs');
 
 /**
  * Kirukals as a desktop application.
@@ -34,6 +35,20 @@ const UPDATE_URL = process.env.KIRUKALS_UPDATE_URL || 'http://localhost:4173/dow
  * that Windows will hand back to us when the browser is finished.
  */
 const SCHEME = 'kirukals';
+
+/**
+ * The desktop OAuth client, written in at build time by
+ * scripts/google-config.cjs. A desktop client's secret is not confidential —
+ * Google says as much, and PKCE is what actually protects the exchange — but
+ * it is generated rather than committed all the same.
+ */
+let GOOGLE_CLIENT_ID = '';
+let GOOGLE_CLIENT_SECRET = '';
+try {
+  ({ clientId: GOOGLE_CLIENT_ID, clientSecret: GOOGLE_CLIENT_SECRET } = require('./google-config.cjs'));
+} catch {
+  /* never generated: the app runs, and simply does not offer Google */
+}
 let pendingDeepLink = null;
 
 if (isDev) {
@@ -194,6 +209,22 @@ if (!app.requestSingleInstanceLock()) {
   ipcMain.handle('auth:open', (_event, url) => {
     if (typeof url === 'string' && url.startsWith('https://')) shell.openExternal(url);
     return true;
+  });
+
+  // The whole Google sign-in, run from here: the renderer gets a token to
+  // trade, and never touches the browser or the loopback listener itself.
+  ipcMain.handle('auth:google', async () => {
+    try {
+      return {
+        ok: true,
+        ...(await signInWithGoogle({
+          clientId: process.env.KIRUKALS_GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID,
+          clientSecret: process.env.KIRUKALS_GOOGLE_CLIENT_SECRET || GOOGLE_CLIENT_SECRET,
+        })),
+      };
+    } catch (err) {
+      return { ok: false, message: String(err?.message || err) };
+    }
   });
 
   // A callback that arrived before the window was listening.

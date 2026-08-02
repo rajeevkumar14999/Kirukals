@@ -150,6 +150,9 @@ export async function renderButton(element, { onProfile, onError, theme = 'dark'
           email: claims.email,
           name: claims.name || claims.email?.split('@')[0] || 'Google user',
           picture: claims.picture || '',
+          // The token itself, for trading with a server that wants proof
+          // rather than a claim. Verified above before it is passed on.
+          idToken: response.credential,
         });
       } catch (err) {
         onError(err);

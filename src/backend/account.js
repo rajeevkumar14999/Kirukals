@@ -63,6 +63,29 @@ export async function signOutRemote() {
   await supabase.auth.signOut();
 }
 
+/**
+ * Trade a Google ID token for a Supabase session.
+ *
+ * This is the flow that keeps Google as the authenticator and Supabase as the
+ * account store, without either of them redirecting the app anywhere. Google's
+ * own button hands over a signed token; Supabase checks that signature against
+ * Google's public keys and returns a session for the matching account,
+ * creating it the first time.
+ *
+ * It works identically on the web and inside the installed app, which the
+ * redirect flow never could: there is no address to come back to, because
+ * nothing ever leaves.
+ */
+export async function signInWithGoogleToken(idToken, accessToken) {
+  const { data, error } = await supabase.auth.signInWithIdToken({
+    provider: 'google',
+    token: idToken,
+    access_token: accessToken,
+  });
+  if (error) throw new Error(friendly(error.message));
+  return asSession(data.user, await profileFor(data.user));
+}
+
 /** Google on the web: the page leaves, and comes back signed in. */
 export async function signInWithGoogleRemote() {
   const { error } = await supabase.auth.signInWithOAuth({

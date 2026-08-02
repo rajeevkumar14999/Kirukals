@@ -38,3 +38,4 @@ dist/downloads/
 # Fonts are copied out of node_modules by the build, not written by hand.
 # Keep them: the app needs them and they are small and licensed to redistribute.
 !public/fonts/
+electron/google-config.cjs

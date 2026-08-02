@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld('kirukals', {
 
   /** Signing in through the system browser, and the callback coming back. */
   auth: {
+    /** Sign in with Google and hand back a token to trade for a session. */
+    google: () => ipcRenderer.invoke('auth:google'),
     open: (url) => ipcRenderer.invoke('auth:open', url),
     pending: () => ipcRenderer.invoke('auth:pending'),
     onCallback: (fn) => {

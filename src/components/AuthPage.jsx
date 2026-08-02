@@ -4,11 +4,9 @@ import { isConfigured as googleConfigured, renderButton } from '../auth/google';
 import { isDesktopApp } from '../downloads';
 import { isConfigured as hasServer } from '../backend/supabase';
 import {
-  finishGoogleDesktop,
   signIn as remoteSignIn,
-  signInWithGoogleRemote,
+  signInWithGoogleToken,
   signUp as remoteSignUp,
-  startGoogleDesktop,
 } from '../backend/account';
 import {
   accountsExist,
@@ -94,14 +92,21 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
     // Google's own button, so this one is not rendered at all.
     // The installed app is served from disk, and a file:// page has no origin
     // for Google to trust — their button cannot work there either.
-    if (hasServer() || isDesktopApp() || !googleConfigured() || !googleRef.current) return;
+    if (isDesktopApp() || !googleConfigured() || !googleRef.current) return;
     let cancelled = false;
     renderButton(googleRef.current, {
       theme,
-      onProfile: (profile) => {
+      onProfile: async (profile) => {
         if (cancelled) return;
         try {
-          onAuthed(signInWithGoogle(profile));
+          // With a server, Google's token is traded for a Supabase session so
+          // the account exists beyond this browser. Without one, the sign-in
+          // stays local, exactly as it always did.
+          onAuthed(
+            hasServer()
+              ? await signInWithGoogleToken(profile.idToken)
+              : signInWithGoogle(profile),
+          );
         } catch (err) {
           setGoogleError(err.message);
         }
@@ -112,37 +117,18 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
   }, [theme, onAuthed]);
 
   /**
-   * The desktop half of Google sign-in: the browser does the talking, and
-   * Windows hands the result back through the kirukals:// scheme.
+   * The installed app's Google sign-in. The browser does the talking to a
+   * listener this app opened on itself, and what comes back is a token that
+   * buys a Supabase session — no redirect into the app, nothing for Windows
+   * to route, and no address to configure anywhere.
    */
-  useEffect(() => {
-    if (!hasServer() || !window.kirukals?.auth) return undefined;
-
-    const finish = async (url) => {
-      try {
-        onAuthed(await finishGoogleDesktop(url));
-      } catch (err) {
-        setGoogleError(err.message);
-        setWaitingForBrowser(false);
-      }
-    };
-
-    // A callback that arrived before this screen was listening.
-    window.kirukals.auth.pending().then((url) => url && finish(url));
-    return window.kirukals.auth.onCallback(finish);
-  }, [onAuthed]);
-
   const withGoogle = async () => {
     setGoogleError('');
+    setWaitingForBrowser(true);
     try {
-      if (window.kirukals?.auth) {
-        setWaitingForBrowser(true);
-        await startGoogleDesktop();
-      } else {
-        // This leaves the page: Google asks, then hands back to Supabase,
-        // which returns here with a session in the URL.
-        await signInWithGoogleRemote();
-      }
+      const result = await window.kirukals.auth.google();
+      if (!result.ok) throw new Error(result.message);
+      onAuthed(await signInWithGoogleToken(result.idToken, result.accessToken));
     } catch (err) {
       setGoogleError(err.message);
       setWaitingForBrowser(false);
@@ -281,7 +267,7 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
             <p className="sheet__credit">{isSignup ? 'Written by' : 'Continue your draft'}</p>
           </header>
 
-          {hasServer() && (
+          {hasServer() && isDesktopApp() && (
             <div className="sheet__google">
               <button
                 type="button"
@@ -308,7 +294,7 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
             </div>
           )}
 
-          {!hasServer() && googleConfigured() && !isDesktopApp() && (
+          {googleConfigured() && !isDesktopApp() && (
             <div className="sheet__google">
               <div ref={googleRef} />
               {googleError && <p className="fld__error">{googleError}</p>}
