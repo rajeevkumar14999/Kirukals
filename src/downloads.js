@@ -9,9 +9,9 @@
  * facts below. Nothing else needs touching.
  */
 export const DESKTOP = {
-  version: '1.0.1',
-  file: 'Kirukals-Setup-1.0.1.exe',
-  bytes: 106546685,
+  version: '1.0.2',
+  file: 'Kirukals-Setup-1.0.2.exe',
+  bytes: 101401505,
   built: '2026-08-02',
   platform: 'Windows 10 and 11 · 64-bit',
 };
@@ -25,5 +25,7 @@ export const prettySize = (bytes = DESKTOP.bytes) => `${Math.round(bytes / 1024 
  * itself in the user agent, and a packaged build is loaded from disk.
  */
 export const isDesktopApp = () =>
-  typeof navigator !== 'undefined' &&
-  (/Electron/i.test(navigator.userAgent) || window.location.protocol === 'file:');
+  typeof window !== 'undefined' &&
+  (Boolean(window.kirukals?.desktop) ||
+    /Electron/i.test(navigator.userAgent) ||
+    window.location.protocol === 'file:');

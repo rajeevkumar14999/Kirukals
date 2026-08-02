@@ -1,5 +1,6 @@
 import { Modal } from './Dialogs';
 import { DESKTOP, downloadUrl, prettySize } from '../downloads';
+import { isConfigured as hasServer } from '../backend/supabase';
 
 /**
  * Getting Kirukals as an installed program.
@@ -34,14 +35,24 @@ export default function DownloadDialog({ onClose, onBackup }) {
           the installer is not code-signed yet. Choose <b>More info → Run anyway</b>. That warning
           is about a certificate, not about the file.
         </p>
-        <p className="hint">
-          <b>The desktop app keeps its own scripts.</b> What you have written here lives in this
-          browser and will not appear there by itself. Back up first, then import in the desktop
-          app — it takes a moment and nothing is lost.
-        </p>
+        {hasServer() ? (
+          <p className="hint">
+            <b>Your scripts follow your account.</b> Sign in with the same email in the desktop app
+            and everything you have written appears there — and anything written there comes back
+            here. Work done offline syncs the next time either one is online.
+          </p>
+        ) : (
+          <p className="hint">
+            <b>The desktop app keeps its own scripts.</b> What you have written here lives in this
+            browser and will not appear there by itself. Back up first, then import in the desktop
+            app — it takes a moment and nothing is lost.
+          </p>
+        )}
 
         <div className="modal__actions">
-          <button className="btn" onClick={onBackup}>Back up my scripts first</button>
+          {!hasServer() && (
+            <button className="btn" onClick={onBackup}>Back up my scripts first</button>
+          )}
           <a className="btn btn--primary" href={downloadUrl()} download={DESKTOP.file}>
             Download ({prettySize()})
           </a>
