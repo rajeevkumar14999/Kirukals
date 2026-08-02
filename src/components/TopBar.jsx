@@ -24,6 +24,7 @@ export default function TopBar({
   onWatermark,
   onNewScript,
   onShortcuts,
+  onChangePassword,
   savedAt,
   syncState,
   stats,
@@ -239,6 +240,13 @@ export default function TopBar({
                 <li>
                   <button onClick={() => { setAccount(false); onOpenProfile('plan'); }}>
                     Membership &amp; payment
+                  </button>
+                </li>
+              )}
+              {!session?.guest && (
+                <li>
+                  <button onClick={() => { setAccount(false); onChangePassword(); }}>
+                    Change password
                   </button>
                 </li>
               )}

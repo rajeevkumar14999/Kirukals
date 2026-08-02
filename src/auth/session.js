@@ -195,6 +195,29 @@ function startSession(user, remember) {
   return session;
 }
 
+/**
+ * Change the password of the account signed in on this device.
+ *
+ * The old one is checked first. Without that, anyone who found an unlocked
+ * machine could lock the owner out of their own drafts — and a local account
+ * has no email to recover through.
+ */
+export async function changePassword({ uid, currentPassword, newPassword }) {
+  const users = readUsers();
+  const user = users.find((u) => u.id === uid);
+  if (!user) throw new Error('That account is no longer on this device.');
+  if (!user.salt) throw new Error('This account signs in with Google, so it has no password to change.');
+  if (String(newPassword).length < 8) throw new Error('Use at least 8 characters for your password.');
+
+  const attempt = await derive(currentPassword, user.salt);
+  if (!equal(attempt, user.hash)) throw new Error('That is not the current password.');
+
+  const salt = randomHex();
+  const hash = await derive(newPassword, salt);
+  writeUsers(users.map((u) => (u.id === uid ? { ...u, salt, hash } : u)));
+  return true;
+}
+
 export function startGuestSession() {
   const session = { uid: 'guest', name: 'Guest writer', email: '', role: 'guest', guest: true, startedAt: Date.now() };
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));

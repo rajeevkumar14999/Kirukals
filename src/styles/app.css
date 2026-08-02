@@ -845,3 +845,39 @@ kbd {
 .account__sync--synced { color: #4fa96a; }
 .account__sync--syncing { color: var(--text-dim); }
 .account__sync--error { color: var(--accent); }
+
+/* --------------------------- the page scrollbar -------------------------- */
+
+/* The canvas keeps a scrollbar — on a ninety-page script it is the only cue
+   for where you are — but it should read as part of the room, not as a
+   coloured stripe down the side of it. */
+.canvas {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.canvas::-webkit-scrollbar { width: 12px; height: 12px; }
+.canvas::-webkit-scrollbar-track { background: transparent; }
+.canvas::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-dim) 34%, transparent);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+.canvas::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text-dim) 60%, transparent);
+  background-clip: content-box;
+}
+.canvas::-webkit-scrollbar-corner { background: transparent; }
+
+/* The strength of a password being chosen. */
+.pw-meter { display: flex; align-items: center; gap: 8px; height: 16px; }
+.pw-meter i {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--text-dim);
+  transition: width 0.18s;
+}
+.pw-meter .pw-meter--weak { background: var(--danger); }
+.pw-meter .pw-meter--good { background: var(--accent); }
+.pw-meter .pw-meter--strong { background: #4fa96a; }
+.pw-meter span { color: var(--text-dim); font-size: 11px; }

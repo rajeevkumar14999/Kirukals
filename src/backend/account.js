@@ -136,6 +136,28 @@ export async function finishGoogleDesktop(callbackUrl) {
   return asSession(data.user, await profileFor(data.user));
 }
 
+/**
+ * Change the password on the server.
+ *
+ * Supabase will do this for any live session, but a session is not proof that
+ * the person at the keyboard is the owner — so the current password is checked
+ * by signing in with it first. An unlocked laptop should not be enough to take
+ * someone's account away from them.
+ */
+export async function changeRemotePassword({ email, currentPassword, newPassword }) {
+  if (String(newPassword).length < 8) throw new Error('Use at least 8 characters for your password.');
+
+  const { error: wrong } = await supabase.auth.signInWithPassword({
+    email,
+    password: currentPassword,
+  });
+  if (wrong) throw new Error('That is not the current password.');
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw new Error(friendly(error.message));
+  return true;
+}
+
 /** Watch for a session appearing or disappearing in another tab. */
 export function onAuthChange(fn) {
   if (!isConfigured()) return () => {};

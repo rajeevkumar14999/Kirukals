@@ -4,6 +4,7 @@ import ProfilePage from './components/ProfilePage';
 import Dock from './components/Dock';
 import PadEditor from './components/PadEditor';
 import HelpDesk from './components/HelpDesk';
+import PasswordDialog from './components/PasswordDialog';
 import DownloadDialog from './components/DownloadDialog';
 import { isDesktopApp } from './downloads';
 import AnalysisReport from './components/AnalysisReport';
@@ -839,6 +840,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         onWatermark={() => setDialog('watermark')}
         onNewScript={newDoc}
         onShortcuts={() => setDialog('shortcuts')}
+        onChangePassword={() => setDialog('password')}
         savedAt={savedAt}
         syncState={syncState}
         session={session}
@@ -1054,6 +1056,9 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         />
       )}
       {dialog === 'shortcuts' && <ShortcutsDialog onClose={() => setDialog(null)} />}
+      {dialog === 'password' && (
+        <PasswordDialog session={session} onClose={() => setDialog(null)} />
+      )}
 
       {dialog === 'production' && (
         <SubscribeDialog
