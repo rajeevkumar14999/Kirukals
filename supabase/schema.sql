@@ -56,7 +56,9 @@ create trigger on_auth_user_created
 -- the format is unchanged and a backup file can be pushed straight in.
 
 create table if not exists public.scripts (
-  id          uuid primary key default gen_random_uuid(),
+  -- The app mints its own document ids and writes them into every saved file,
+  -- backup and export, so the database takes the id it is given.
+  id          text primary key,
   owner       uuid not null references auth.users on delete cascade,
   name        text not null default 'Untitled Screenplay',
   doc         jsonb not null,
