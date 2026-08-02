@@ -4,9 +4,11 @@ import { isConfigured as googleConfigured, renderButton } from '../auth/google';
 import { isDesktopApp } from '../downloads';
 import { isConfigured as hasServer } from '../backend/supabase';
 import {
+  finishGoogleDesktop,
   signIn as remoteSignIn,
   signInWithGoogleRemote,
   signUp as remoteSignUp,
+  startGoogleDesktop,
 } from '../backend/account';
 import {
   accountsExist,
@@ -70,6 +72,8 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
   const firstFieldRef = useRef(null);
   const googleRef = useRef(null);
   const [googleError, setGoogleError] = useState('');
+  // The installed app waits for the browser to hand the sign-in back.
+  const [waitingForBrowser, setWaitingForBrowser] = useState(false);
 
   const reduceMotion = useMemo(
     () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
@@ -106,6 +110,44 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
     }).catch((err) => !cancelled && setGoogleError(err.message));
     return () => { cancelled = true; };
   }, [theme, onAuthed]);
+
+  /**
+   * The desktop half of Google sign-in: the browser does the talking, and
+   * Windows hands the result back through the kirukals:// scheme.
+   */
+  useEffect(() => {
+    if (!hasServer() || !window.kirukals?.auth) return undefined;
+
+    const finish = async (url) => {
+      try {
+        onAuthed(await finishGoogleDesktop(url));
+      } catch (err) {
+        setGoogleError(err.message);
+        setWaitingForBrowser(false);
+      }
+    };
+
+    // A callback that arrived before this screen was listening.
+    window.kirukals.auth.pending().then((url) => url && finish(url));
+    return window.kirukals.auth.onCallback(finish);
+  }, [onAuthed]);
+
+  const withGoogle = async () => {
+    setGoogleError('');
+    try {
+      if (window.kirukals?.auth) {
+        setWaitingForBrowser(true);
+        await startGoogleDesktop();
+      } else {
+        // This leaves the page: Google asks, then hands back to Supabase,
+        // which returns here with a session in the URL.
+        await signInWithGoogleRemote();
+      }
+    } catch (err) {
+      setGoogleError(err.message);
+      setWaitingForBrowser(false);
+    }
+  };
 
   const set = (key) => (e) => {
     setValues((v) => ({ ...v, [key]: e.target.value }));
@@ -239,22 +281,13 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
             <p className="sheet__credit">{isSignup ? 'Written by' : 'Continue your draft'}</p>
           </header>
 
-          {hasServer() && !isDesktopApp() && (
+          {hasServer() && (
             <div className="sheet__google">
               <button
                 type="button"
                 className="sheet__google-btn"
-                disabled={busy}
-                onClick={async () => {
-                  setFormError('');
-                  try {
-                    // This leaves the page: Google asks, then hands back to
-                    // Supabase, which returns here with a session in the URL.
-                    await signInWithGoogleRemote();
-                  } catch (err) {
-                    setFormError(err.message);
-                  }
-                }}
+                disabled={busy || waitingForBrowser}
+                onClick={withGoogle}
               >
                 <svg viewBox="0 0 18 18" aria-hidden="true" width="17" height="17">
                   <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z" />
@@ -262,8 +295,14 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
                   <path fill="#FBBC05" d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z" />
                   <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.42 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z" />
                 </svg>
-                Continue with Google
+                {waitingForBrowser ? 'Waiting for your browser…' : 'Continue with Google'}
               </button>
+              {waitingForBrowser && (
+                <p className="sheet__hint">
+                  Finish signing in in the browser window that just opened. This app takes over
+                  as soon as you do.
+                </p>
+              )}
               {googleError && <p className="fld__error">{googleError}</p>}
               <div className="sheet__or"><span>or use an email address</span></div>
             </div>

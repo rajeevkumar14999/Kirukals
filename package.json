@@ -2,7 +2,7 @@
   "name": "kirukals",
   "productName": "Kirukals",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Write screenplays with industry-standard formatting, and plan the shoot from the same script.",
   "author": "Kirukals",
   "type": "module",
@@ -78,6 +78,14 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Kirukals",
       "artifactName": "Kirukals-Setup-${version}.${ext}"
-    }
+    },
+    "protocols": [
+      {
+        "name": "Kirukals",
+        "schemes": [
+          "kirukals"
+        ]
+      }
+    ]
   }
 }

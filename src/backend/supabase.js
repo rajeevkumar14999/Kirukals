@@ -27,6 +27,10 @@ export const supabase = isConfigured()
         // the app has nowhere to land; email and password work everywhere.
         detectSessionInUrl: window.location.protocol.startsWith('http'),
         storageKey: 'kirukals.auth',
+        // The desktop app finishes its sign-in by exchanging a code it is
+        // handed, which is what PKCE is for — and it keeps the secret half of
+        // the handshake inside the app rather than in a browser it does not own.
+        flowType: 'pkce',
       },
     })
   : null;

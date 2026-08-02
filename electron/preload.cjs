@@ -10,6 +10,17 @@ contextBridge.exposeInMainWorld('kirukals', {
   desktop: true,
   version: () => ipcRenderer.invoke('app:version'),
 
+  /** Signing in through the system browser, and the callback coming back. */
+  auth: {
+    open: (url) => ipcRenderer.invoke('auth:open', url),
+    pending: () => ipcRenderer.invoke('auth:pending'),
+    onCallback: (fn) => {
+      const relay = (_event, url) => fn(url);
+      ipcRenderer.on('deeplink', relay);
+      return () => ipcRenderer.removeListener('deeplink', relay);
+    },
+  },
+
   update: {
     check: () => ipcRenderer.invoke('update:check'),
     download: () => ipcRenderer.invoke('update:download'),

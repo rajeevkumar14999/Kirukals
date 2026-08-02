@@ -63,16 +63,54 @@ export async function signOutRemote() {
   await supabase.auth.signOut();
 }
 
-/**
- * Google, on the web only. The desktop app is served from a file, and an
- * OAuth redirect has nowhere to come back to there.
- */
+/** Google on the web: the page leaves, and comes back signed in. */
 export async function signInWithGoogleRemote() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: window.location.origin },
   });
   if (error) throw new Error(friendly(error.message));
+}
+
+/**
+ * Google in the installed app.
+ *
+ * A page loaded from disk has no address to redirect to, so the sign-in
+ * happens in the person's real browser — where they are probably already
+ * signed in to Google — and Windows hands the result back through the
+ * kirukals:// scheme the installer registered.
+ *
+ * The exchange is PKCE: the browser only ever carries a short-lived code, and
+ * the secret half of the handshake never leaves this app.
+ */
+export const DESKTOP_CALLBACK = 'kirukals://auth-callback';
+
+export async function startGoogleDesktop() {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: DESKTOP_CALLBACK,
+      skipBrowserRedirect: true, // this window stays where it is
+    },
+  });
+  if (error) throw new Error(friendly(error.message));
+  if (!data?.url) throw new Error('Google sign-in could not be started.');
+
+  await window.kirukals.auth.open(data.url);
+  return data.url;
+}
+
+/** Finish the sign-in from the URL Windows handed back. */
+export async function finishGoogleDesktop(callbackUrl) {
+  const url = new URL(callbackUrl.replace('kirukals://', 'https://kirukals.local/'));
+  const code = url.searchParams.get('code');
+  const failed = url.searchParams.get('error_description') || url.searchParams.get('error');
+  if (failed) throw new Error(friendly(failed));
+  if (!code) throw new Error('Google did not return a sign-in code.');
+
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) throw new Error(friendly(error.message));
+  return asSession(data.user, await profileFor(data.user));
 }
 
 /** Watch for a session appearing or disappearing in another tab. */

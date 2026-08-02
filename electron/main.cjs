@@ -25,6 +25,40 @@ const STATE = path.join(app.getPath('userData'), 'window.json');
  */
 const UPDATE_URL = process.env.KIRUKALS_UPDATE_URL || 'http://localhost:4173/downloads/';
 
+/**
+ * Signing in with Google, from an app that has no web address.
+ *
+ * The page inside this window is loaded from disk, so there is no origin for
+ * Google to redirect back to. The way round it is the way every desktop app
+ * does it: send the person to their real browser, and register a URL scheme
+ * that Windows will hand back to us when the browser is finished.
+ */
+const SCHEME = 'kirukals';
+let pendingDeepLink = null;
+
+if (isDev) {
+  // In development the executable is Electron itself, so Windows needs to be
+  // told which script to run when the scheme is opened.
+  app.setAsDefaultProtocolClient(SCHEME, process.execPath, [path.resolve(process.argv[1] || '.')]);
+} else {
+  app.setAsDefaultProtocolClient(SCHEME);
+}
+
+const deepLinkFrom = (argv) => argv.find((arg) => arg.startsWith(`${SCHEME}://`)) || null;
+
+function deliverDeepLink(url) {
+  if (!url) return;
+  const [win] = BrowserWindow.getAllWindows();
+  if (win && !win.isDestroyed()) {
+    if (win.isMinimized()) win.restore();
+    win.focus();
+    win.webContents.send('deeplink', url);
+  } else {
+    // The window is not up yet; hold it until the renderer asks.
+    pendingDeepLink = url;
+  }
+}
+
 autoUpdater.autoDownload = false;      // ask first; a writer's connection may be metered
 autoUpdater.autoInstallOnAppQuit = true;
 autoUpdater.setFeedURL({ provider: 'generic', url: UPDATE_URL });
@@ -134,17 +168,40 @@ function createWindow() {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
+  // Windows delivers the callback by launching the app again with the URL in
+  // its arguments; the running copy is the one that should receive it.
+  app.on('second-instance', (_event, argv) => {
     const [win] = BrowserWindow.getAllWindows();
     if (win) {
       if (win.isMinimized()) win.restore();
       win.focus();
     }
+    deliverDeepLink(deepLinkFrom(argv));
+  });
+
+  // macOS, and Windows when the app was cold-started by the callback.
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    deliverDeepLink(url);
   });
 
   // The renderer asks; the main process does. Nothing updates behind anyone's
   // back — a download starts only when someone presses the button.
   ipcMain.handle('app:version', () => app.getVersion());
+
+  // Open the sign-in page in the person's real browser, where they are
+  // probably already signed in to Google.
+  ipcMain.handle('auth:open', (_event, url) => {
+    if (typeof url === 'string' && url.startsWith('https://')) shell.openExternal(url);
+    return true;
+  });
+
+  // A callback that arrived before the window was listening.
+  ipcMain.handle('auth:pending', () => {
+    const url = pendingDeepLink;
+    pendingDeepLink = null;
+    return url;
+  });
   ipcMain.handle('update:check', async () => {
     if (isDev) return { state: 'dev' };
     try {
@@ -195,6 +252,8 @@ if (!app.requestSingleInstanceLock()) {
     );
 
     createWindow();
+    // Started by the callback itself: hold the URL for the renderer.
+    pendingDeepLink = deepLinkFrom(process.argv) || pendingDeepLink;
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
