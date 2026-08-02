@@ -110,6 +110,48 @@ function saveState(win) {
   }
 }
 
+/**
+ * The window that appears while the app is still starting.
+ *
+ * An editor of this size takes a second or two to be ready, and a blank
+ * rectangle in that gap reads as a program that has hung. The splash is shown
+ * immediately, and closes the moment the real window has something to show —
+ * it is never left up for effect longer than the loading actually takes,
+ * beyond a short minimum that stops it flashing.
+ */
+let splash = null;
+
+function createSplash() {
+  splash = new BrowserWindow({
+    width: 460,
+    height: 300,
+    frame: false,
+    resizable: false,
+    movable: false,
+    center: true,
+    show: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    backgroundColor: '#0e1013',
+    webPreferences: { nodeIntegration: false, contextIsolation: true },
+  });
+
+  splash.loadFile(path.join(__dirname, 'splash.html'));
+  splash.once('ready-to-show', () => {
+    splash.show();
+    splash.webContents.executeJavaScript(
+      `window.postMessage({ version: ${JSON.stringify(app.getVersion())} }, '*')`,
+    ).catch(() => {});
+  });
+
+  return splash;
+}
+
+function closeSplash() {
+  if (splash && !splash.isDestroyed()) splash.close();
+  splash = null;
+}
+
 function createWindow() {
   const state = readState();
 
@@ -141,6 +183,25 @@ function createWindow() {
   if (state.maximized) win.maximize();
   wire(win);
 
+  // Hold the splash briefly so it does not flash on a fast machine, then hand
+  // over. Whatever happens — ready, failed, or a slow page — it comes down.
+  const shownAt = Date.now();
+  const handOver = () => {
+    const waited = Date.now() - shownAt;
+    setTimeout(() => {
+      closeSplash();
+      if (!win.isDestroyed()) {
+        win.show();
+        win.focus();
+      }
+    }, Math.max(0, 900 - waited));
+  };
+
+  win.once('ready-to-show', handOver);
+  win.webContents.once('did-fail-load', handOver);
+  // A page that never reports itself must not leave the splash up for ever.
+  setTimeout(handOver, 10000);
+
   // The usual ways into the inspector, closed in a shipped build.
   if (!isDev) {
     win.webContents.on('before-input-event', (event, input) => {
@@ -153,7 +214,6 @@ function createWindow() {
     });
     win.webContents.on('devtools-opened', () => win.webContents.closeDevTools());
   }
-  win.once('ready-to-show', () => win.show());
   win.on('close', () => saveState(win));
 
   // Links to maps, fonts and the like open in the real browser, not in here.
@@ -282,6 +342,7 @@ if (!app.requestSingleInstanceLock()) {
       ]),
     );
 
+    createSplash();
     createWindow();
     // Started by the callback itself: hold the URL for the renderer.
     pendingDeepLink = deepLinkFrom(process.argv) || pendingDeepLink;

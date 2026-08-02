@@ -1,0 +1,136 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Kirukals</title>
+<style>
+  /*
+    The window that appears before the app does.
+
+    It exists because an editor takes a moment to come up and a blank rectangle
+    reads as a hang. Everything here is inline and self-contained: the splash
+    must draw before anything else has loaded, so it cannot wait on a
+    stylesheet, a font file or an image.
+  */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 100vw;
+    height: 100vh;
+    display: grid;
+    place-items: center;
+    background: #0e1013;
+    color: #f4f4f2;
+    font: 14px/1.5 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    overflow: hidden;
+    /* A hairline edge, so the panel reads as an object rather than a hole. */
+    border: 1px solid #23272e;
+    border-radius: 10px;
+  }
+
+  /* A slow wash of light behind the mark, like a lamp coming up. */
+  body::before {
+    content: '';
+    position: absolute;
+    inset: -40%;
+    background: radial-gradient(circle at 50% 42%, rgba(217, 164, 65, 0.16), transparent 55%);
+    animation: breathe 3.2s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50%      { opacity: 1;    transform: scale(1.06); }
+  }
+
+  .stage {
+    position: relative;
+    text-align: center;
+    padding: 0 40px;
+  }
+
+  .mark {
+    font-size: 54px;
+    line-height: 1;
+    color: #d9a441;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+
+  h1 {
+    margin-top: 14px;
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.12s forwards;
+  }
+
+  .tag {
+    margin-top: 6px;
+    color: #9aa1ab;
+    font-size: 12.5px;
+    letter-spacing: 0.03em;
+    opacity: 0;
+    animation: fade 0.8s ease 0.34s forwards;
+  }
+
+  @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+  @keyframes fade { to { opacity: 1; } }
+
+  /* The progress line: a light travelling under the words. */
+  .bar {
+    position: relative;
+    width: 190px;
+    height: 2px;
+    margin: 26px auto 0;
+    background: #23272e;
+    border-radius: 2px;
+    overflow: hidden;
+    opacity: 0;
+    animation: fade 0.6s ease 0.5s forwards;
+  }
+  .bar i {
+    position: absolute;
+    inset: 0;
+    width: 42%;
+    background: linear-gradient(90deg, transparent, #d9a441, transparent);
+    animation: sweep 1.25s ease-in-out infinite;
+  }
+  @keyframes sweep {
+    from { transform: translateX(-110%); }
+    to   { transform: translateX(260%); }
+  }
+
+  footer {
+    position: absolute;
+    left: 0; right: 0; bottom: 14px;
+    color: #6b7280;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+
+  /* Nobody should be made to watch this if they have asked not to. */
+  @media (prefers-reduced-motion: reduce) {
+    body::before, .mark, h1, .tag, .bar, .bar i { animation: none; opacity: 1; transform: none; }
+  }
+</style>
+
+<div class="stage">
+  <div class="mark">◗</div>
+  <h1>Kirukals</h1>
+  <p class="tag">Everything starts on page one</p>
+  <div class="bar"><i></i></div>
+</div>
+
+<footer id="version"></footer>
+
+<script>
+  // The main process tells us what to say; if it does not, say nothing rather
+  // than a wrong version number.
+  window.addEventListener('message', (event) => {
+    if (event.data?.version) {
+      document.getElementById('version').textContent = `Version ${event.data.version}`;
+    }
+  });
+</script>
