@@ -56,11 +56,17 @@ returns trigger
 language plpgsql
 security definer set search_path = public
 as $$
+declare first_account boolean;
 begin
-  insert into public.profiles (id, name)
+  -- Whoever sets up the install administers it: the same rule the app has
+  -- always followed on a single machine, applied to the database.
+  select not exists (select 1 from public.profiles) into first_account;
+
+  insert into public.profiles (id, name, role)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1))
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    case when first_account then 'admin' else 'writer' end
   );
   return new;
 end;
