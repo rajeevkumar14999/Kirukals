@@ -11,7 +11,7 @@ Two kinds:
 - **Electron tests** (`*.cjs`) drive the *built* app in a real window, because
   the questions they answer — is typing fast, does the editor still work when
   most of it is not on screen — cannot be answered anywhere else. They need
-  `npm run build` to have been run first.
+  `npm run test:build` to have been run first.
 
 ```bash
 npm test
@@ -123,7 +123,7 @@ minified and obfuscated, and the profile will say `a`, `b`, `c`.
 ### `smoke.cjs` — the editor with most of itself unbuilt
 
 Only the pages near the window are built, so the things that could break are
-worth naming. Six checks, all passing:
+worth naming. Seven checks, all passing:
 
 - every page is in the document (the sheets are all there; only their contents come and go)
 - only the pages in view are built — 24 lines in the DOM, not 2,200
