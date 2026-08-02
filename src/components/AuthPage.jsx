@@ -2,6 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { guestTrialSpent } from '../billing/trial';
 import { isConfigured as googleConfigured, renderButton } from '../auth/google';
 import { isDesktopApp } from '../downloads';
+import { isConfigured as hasServer } from '../backend/supabase';
+import {
+  signIn as remoteSignIn,
+  signUp as remoteSignUp,
+} from '../backend/account';
 import {
   accountsExist,
   signInWithGoogle,
@@ -124,6 +129,28 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
     setBusy(true);
     setFormError('');
     try {
+      // With a server configured the account lives there, so the same
+      // credentials work on any machine. Without one, nothing changes: the
+      // account is this browser's, exactly as it was.
+      if (hasServer()) {
+        if (isSignup) {
+          const result = await remoteSignUp({
+            name: values.name,
+            email: values.email,
+            password: values.password,
+          });
+          if (result.pending) {
+            setFormError(result.message);
+            setBusy(false);
+            return;
+          }
+          onAuthed(result.session);
+        } else {
+          onAuthed(await remoteSignIn({ email: values.email, password: values.password }));
+        }
+        return;
+      }
+
       const session = isSignup
         ? await signUp({ name: values.name, email: values.email, password: values.password })
         : await signIn({ email: values.email, password: values.password, remember });

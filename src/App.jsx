@@ -46,6 +46,9 @@ import {
 import { ensureTrial, spendTrial, trialLeft } from './billing/trial';
 import { unreadCount } from './community/store';
 import { getInstallPrompt, install, isInstalled, onInstallable } from './install';
+import { isConfigured as hasServer } from './backend/supabase';
+import { currentRemoteSession, signOutRemote } from './backend/account';
+import { fetchRemote, listRemote, pushRemote, reconcile } from './backend/scripts';
 import { applyPendingUpdate, dismissUpdate, onUpdateReady, updatePending } from './update';
 
 // Read once by the sign-in page to explain why a guest was thrown out.
@@ -94,6 +97,21 @@ export default function App() {
 
   useEffect(() => savePrefs(prefs), [prefs]);
 
+  // A session held by the server outranks whatever this browser remembers:
+  // signing in on one machine should be enough for the next one.
+  useEffect(() => {
+    if (!hasServer() || session) return;
+    let cancelled = false;
+    currentRemoteSession().then((remote) => {
+      if (!cancelled && remote) {
+        setScope(remote.uid);
+        setSession(remote);
+        ensureTrial(remote.uid);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [session]);
+
   useEffect(() => {
     document.documentElement.dataset.theme = prefs.theme;
   }, [prefs.theme]);
@@ -124,6 +142,8 @@ export default function App() {
 
   const leave = ({ guestExpired = false } = {}) => {
     endSession();
+    // Sign out of the server too, or the next visit signs straight back in.
+    if (hasServer()) signOutRemote();
     // A guest has nowhere to sign back in to, so their drafts go with them.
     // The trial clock deliberately survives sign-out — that is what makes the
     // ten minutes per account rather than per login.
@@ -211,6 +231,8 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
   const [updateReady, setUpdateReady] = useState(false);
   // Set when a save is refused for want of room; cleared by the next save that works.
   const [storageFull, setStorageFull] = useState(null);
+  // How the copy on the server is doing. Never blocks the writing.
+  const [syncState, setSyncState] = useState({ state: 'idle' });
 
   // Reopen the most recent script, or start a fresh one on first run.
   const initial = useRef(null);
@@ -295,6 +317,45 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
   /* ---------------- project documents ---------------- */
 
   useEffect(() => onBackupState(setBackup), []);
+
+  /**
+   * Meet the server once, on the way in.
+   *
+   * Anything written on another machine and newer than the local copy is
+   * pulled down; anything written here while signed out is pushed up. Nothing
+   * is deleted on either side — a writer should never lose pages to a sync.
+   */
+  useEffect(() => {
+    if (!session.remote) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        setSyncState({ state: 'syncing' });
+        const remote = await listRemote();
+        const { push, pull } = reconcile(loadIndex(), remote);
+
+        for (const id of pull) {
+          if (cancelled) return;
+          const doc = await fetchRemote(id);
+          if (doc) saveDoc(doc);
+        }
+        for (const id of push) {
+          if (cancelled) return;
+          const doc = loadDoc(id);
+          if (doc) await pushRemote(doc, session.uid);
+        }
+
+        if (cancelled) return;
+        setIndex(loadIndex());
+        setSyncState({ state: 'synced', at: Date.now(), pulled: pull.length, pushed: push.length });
+      } catch (err) {
+        if (!cancelled) setSyncState({ state: 'error', message: err.message });
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [session]);
   useEffect(() => onUpdateReady(setUpdateReady), []);
 
   const openDocument = (doc.documents || []).find((d) => d.id === docView) || null;
@@ -421,17 +482,29 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
 
   // Autosave must never take the app down with it. A full browser store is a
   // condition to report, not an exception to throw during a keystroke.
-  const flushSave = useCallback((d) => {
-    try {
-      const stamped = saveDoc(d);
-      setSavedAt(stamped.updatedAt);
-      setIndex(loadIndex());
-      setStorageFull(null);
-    } catch (e) {
-      if (e instanceof StorageFullError) setStorageFull(e.message);
-      else throw e;
-    }
-  }, []);
+  const flushSave = useCallback(
+    (d) => {
+      try {
+        const stamped = saveDoc(d);
+        setSavedAt(stamped.updatedAt);
+        setIndex(loadIndex());
+        setStorageFull(null);
+
+        // The local copy is the one being edited; the server gets a copy as
+        // soon as it can. A failed push is not an editing error — the work is
+        // already safe on this machine — so it is noted, not thrown.
+        if (session.remote) {
+          pushRemote(stamped, session.uid)
+            .then(() => setSyncState({ state: 'synced', at: Date.now() }))
+            .catch((err) => setSyncState({ state: 'error', message: err.message }));
+        }
+      } catch (e) {
+        if (e instanceof StorageFullError) setStorageFull(e.message);
+        else throw e;
+      }
+    },
+    [session],
+  );
 
   useEffect(() => {
     setSavedAt(null);
@@ -743,6 +816,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         onNewScript={newDoc}
         onShortcuts={() => setDialog('shortcuts')}
         savedAt={savedAt}
+        syncState={syncState}
         session={session}
         onSignOut={onSignOut}
         onOpenAdmin={onOpenAdmin}

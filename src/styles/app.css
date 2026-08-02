@@ -831,3 +831,8 @@ kbd {
 .dual .row__tag { display: none; }
 /* The pair already has its space above it; the cue must not add another. */
 .dual .dual__col > .row:first-child { margin-top: 0 !important; }
+
+/* Where the server copy has got to — a whisper, never a blocker. */
+.topbar__sync { margin-left: 5px; font-style: normal; }
+.topbar__sync.is-ok { color: #4fa96a; }
+.topbar__sync.is-off { color: var(--accent); }

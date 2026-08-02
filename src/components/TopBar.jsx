@@ -25,6 +25,7 @@ export default function TopBar({
   onNewScript,
   onShortcuts,
   savedAt,
+  syncState,
   stats,
   session,
   onSignOut,
@@ -73,6 +74,13 @@ export default function TopBar({
         />
         <span className="topbar__saved">
           {savedAt ? `Saved ${new Date(savedAt).toLocaleTimeString()}` : 'Saving…'}
+          {/* Where the copy on the server has got to. Silent when there is no
+              server, and never in the way of the writing. */}
+          {syncState?.state === 'syncing' && <em className="topbar__sync">· syncing</em>}
+          {syncState?.state === 'synced' && <em className="topbar__sync is-ok">· in the cloud</em>}
+          {syncState?.state === 'error' && (
+            <em className="topbar__sync is-off" title={syncState.message}>· offline copy only</em>
+          )}
         </span>
       </div>
 
