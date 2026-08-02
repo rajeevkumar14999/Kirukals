@@ -103,13 +103,45 @@ export async function spendTrial(deltaMs) {
   return error ? null : Number(data);
 }
 
-/** Supabase speaks in error codes; a writer should read English. */
+/**
+ * Supabase speaks in error codes; a writer should read English.
+ *
+ * The rate limits are worth separating. A limit on *emails* is not a limit on
+ * attempts, and telling someone to wait a minute when the real quota is
+ * hourly sends them round the same loop until they give up.
+ */
 function friendly(message = '') {
   const m = message.toLowerCase();
+
   if (m.includes('invalid login')) return 'That email and password do not match an account.';
-  if (m.includes('already registered')) return 'There is already an account with that email. Sign in instead.';
-  if (m.includes('password')) return 'That password is too short — use at least eight characters.';
-  if (m.includes('rate limit')) return 'Too many attempts. Wait a minute and try again.';
+  if (m.includes('already registered') || m.includes('already been registered')) {
+    return 'There is already an account with that email. Sign in instead.';
+  }
+
+  // Confirmation emails are capped per hour on a new project, and every signup
+  // sends one while "Confirm email" is switched on.
+  if (m.includes('email rate limit') || (m.includes('rate limit') && m.includes('email'))) {
+    return (
+      'The server has sent as many confirmation emails as it is allowed to this hour. ' +
+      'Either wait, or turn off "Confirm email" in Supabase (Authentication → Providers → Email) ' +
+      'so accounts work immediately without one.'
+    );
+  }
+
+  // The one-minute cooldown between requests from the same address.
+  const seconds = m.match(/after (\d+) seconds?/);
+  if (seconds) return `Wait ${seconds[1]} seconds and try again — the server limits how often this can be asked.`;
+  if (m.includes('rate limit') || m.includes('too many')) {
+    return 'The server is refusing further attempts for the moment. Wait a little and try again.';
+  }
+
+  if (m.includes('password should be') || m.includes('password must')) {
+    return 'That password is too short — use at least eight characters.';
+  }
+  if (m.includes('email address') && m.includes('invalid')) return 'That email address does not look right.';
+  if (m.includes('confirm') && m.includes('email')) {
+    return 'Check your inbox and confirm the address, then sign in.';
+  }
   if (m.includes('failed to fetch') || m.includes('network')) {
     return 'The server could not be reached. Check your connection, or keep working offline.';
   }
