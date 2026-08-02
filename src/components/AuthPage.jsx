@@ -62,7 +62,9 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
   const guestUsed = guestTrialSpent();
   const [mode, setMode] = useState(() => (accountsExist() ? 'signin' : 'signup'));
   const [values, setValues] = useState({ name: '', email: '', password: '', confirm: '' });
-  const [remember, setRemember] = useState(true);
+  // The installed app deliberately does not keep anyone signed in across a
+  // restart, so there is nothing to offer to remember.
+  const [remember, setRemember] = useState(!isDesktopApp());
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
@@ -183,7 +185,11 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
 
       const session = isSignup
         ? await signUp({ name: values.name, email: values.email, password: values.password })
-        : await signIn({ email: values.email, password: values.password, remember });
+        : await signIn({
+            email: values.email,
+            password: values.password,
+            remember: remember && !isDesktopApp(),
+          });
       onAuthed(session);
     } catch (err) {
       setFormError(err.message);
@@ -372,7 +378,7 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
               </div>
             )}
 
-            {!isSignup && (
+            {!isSignup && !isDesktopApp() && (
               <label className="remember">
                 <input
                   type="checkbox"
@@ -382,6 +388,12 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
                 />
                 Keep me signed in on this device
               </label>
+            )}
+
+            {!isSignup && isDesktopApp() && (
+              <p className="remember remember--fixed">
+                Closing Kirukals signs you out. Your scripts stay where they are.
+              </p>
             )}
 
             {formError && <p className="sheet__alert" role="alert">{formError}</p>}

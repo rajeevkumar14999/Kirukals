@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { isDesktopApp } from '../downloads';
 
 /**
  * The connection to the server, when there is one.
@@ -23,6 +24,17 @@ export const supabase = isConfigured()
       auth: {
         persistSession: true,
         autoRefreshToken: true,
+        /*
+         * The installed app signs out when it closes.
+         *
+         * A desktop program sits on a machine other people can reach, and a
+         * writer who quits it reasonably expects to have left. Session storage
+         * survives a reload but not a restart, which is exactly that rule —
+         * and no scripts are touched, only the token.
+         */
+        storage: isDesktopApp() && typeof sessionStorage !== 'undefined'
+          ? sessionStorage
+          : undefined,
         // The desktop build is served from a file, where a redirect back into
         // the app has nowhere to land; email and password work everywhere.
         detectSessionInUrl: window.location.protocol.startsWith('http'),
