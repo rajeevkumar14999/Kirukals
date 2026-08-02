@@ -865,11 +865,6 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         stats={stats}
         activeType={active.element?.type}
         onSetType={setActiveType}
-        onRenameTitle={(title) =>
-          update((d) => ({ ...d, name: title, titlePage: { ...d.titlePage, title } }), {
-            coalesceKey: 'title',
-          })
-        }
         undo={undo}
         redo={redo}
         canUndo={canUndo}

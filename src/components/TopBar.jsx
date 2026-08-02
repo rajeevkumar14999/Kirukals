@@ -10,7 +10,6 @@ export default function TopBar({
   doc,
   activeType,
   onSetType,
-  onRenameTitle,
   undo,
   redo,
   canUndo,
@@ -64,22 +63,11 @@ export default function TopBar({
   return (
     <header className="topbar">
       <div className="topbar__left">
-        <span className="brand">
-          <span className="brand__mark">◗</span>
-          Kirukals
-        </span>
-
-        {/* Everything the app can do lives here, so the bar itself can stay
-            almost empty. */}
+        {/* Everything the app can do lives here, and it is all the left of the
+            bar carries: the title is on the title page, where it belongs, and
+            the app does not need to tell you its own name while you write. */}
         <MenuBar menus={menus} />
 
-        <input
-          className="topbar__title"
-          value={doc.titlePage?.title || ''}
-          placeholder="Untitled Screenplay"
-          onChange={(e) => onRenameTitle(e.target.value)}
-          aria-label="Script title"
-        />
         <span className="topbar__saved">
           {savedAt ? `Saved ${new Date(savedAt).toLocaleTimeString()}` : 'Saving…'}
         </span>

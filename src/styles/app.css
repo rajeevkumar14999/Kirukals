@@ -64,27 +64,6 @@ body {
 .topbar__left { flex: 1 1 auto; min-width: 0; }
 .topbar__right { margin-left: auto; }
 
-.brand {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-weight: 700; letter-spacing: -0.01em; white-space: nowrap;
-}
-.brand__mark { color: var(--accent); font-size: 18px; }
-
-.topbar__title {
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  color: var(--text);
-  font: inherit;
-  font-weight: 600;
-  padding: 6px 8px;
-  min-width: 120px;
-  max-width: 320px;
-  flex: 1 1 auto;
-}
-.topbar__title:hover { border-color: var(--line); }
-.topbar__title:focus { outline: none; border-color: var(--accent); background: var(--bg-3); }
-
 .topbar__saved { color: var(--text-dim); font-size: 12px; white-space: nowrap; }
 .pagecount {
   color: var(--text-dim); font-size: 12px; white-space: nowrap;
@@ -955,11 +934,6 @@ kbd {
   height: 1px;
   margin: 5px 7px;
   background: var(--line);
-}
-
-@media (max-width: 1100px) {
-  /* On a narrow window the menus matter more than the brand. */
-  .brand { display: none; }
 }
 
 /* A submenu opens beside its parent, on hover, the way one always has. */
