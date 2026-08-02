@@ -121,6 +121,9 @@ function saveState(win) {
  */
 let splash = null;
 
+/** How long the splash is held, however quickly the app becomes ready. */
+const SPLASH_HOLD_MS = 5000;
+
 function createSplash() {
   splash = new BrowserWindow({
     width: 460,
@@ -183,10 +186,15 @@ function createWindow() {
   if (state.maximized) win.maximize();
   wire(win);
 
-  // Hold the splash briefly so it does not flash on a fast machine, then hand
-  // over. Whatever happens — ready, failed, or a slow page — it comes down.
+  // The splash is held for its full time even when the app is ready sooner —
+  // the app waits for it, never the other way round. Whatever happens after
+  // that — ready, failed, or a page that never reports itself — it comes down.
   const shownAt = Date.now();
+  let handedOver = false;
+
   const handOver = () => {
+    if (handedOver) return;
+    handedOver = true;
     const waited = Date.now() - shownAt;
     setTimeout(() => {
       closeSplash();
@@ -194,13 +202,13 @@ function createWindow() {
         win.show();
         win.focus();
       }
-    }, Math.max(0, 900 - waited));
+    }, Math.max(0, SPLASH_HOLD_MS - waited));
   };
 
   win.once('ready-to-show', handOver);
   win.webContents.once('did-fail-load', handOver);
   // A page that never reports itself must not leave the splash up for ever.
-  setTimeout(handOver, 10000);
+  setTimeout(handOver, SPLASH_HOLD_MS + 8000);
 
   // The usual ways into the inspector, closed in a shipped build.
   if (!isDev) {
