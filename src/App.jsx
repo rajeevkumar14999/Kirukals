@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import AdminPage from './components/AdminPage';
 import ProfilePage from './components/ProfilePage';
 import Dock from './components/Dock';
@@ -348,7 +348,19 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
   useEffect(() => onInstallable((p) => setCanInstall(Boolean(p))), []);
 
   const stats = useMemo(() => computeStats(doc.elements), [doc.elements]);
-  const vocab = useMemo(() => collectVocabulary(doc.elements), [doc.elements]);
+
+  /**
+   * The panels read the script; nobody types into them.
+   *
+   * Every keystroke used to rebuild the scene list, the cast, the locations
+   * and the shot breakdown before the letter appeared on the page. Deferring
+   * lets the letter land first and the panels catch up a beat later — and if
+   * the next key comes before they have finished, React abandons that work and
+   * starts again, so a fast typist never pays for a list they are not looking
+   * at.
+   */
+  const quietDoc = useDeferredValue(doc);
+  const vocab = useMemo(() => collectVocabulary(quietDoc.elements), [quietDoc.elements]);
   const commentCount = useMemo(
     () => doc.elements.reduce((n, el) => n + (el.comments?.length || 0), 0),
     [doc.elements],
@@ -987,7 +999,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
 
         {panelOpen && (
         <Sidebar
-          doc={doc}
+          doc={quietDoc}
           section={section}
           stats={stats}
           index={index}

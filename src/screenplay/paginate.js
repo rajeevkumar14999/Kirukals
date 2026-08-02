@@ -30,8 +30,24 @@ export function wrapLines(text, cpl) {
   return out;
 }
 
-export const countLines = (el, inDual = false) =>
-  wrapLines(el.text || '', inDual ? DUAL_CHARS : charsPerLine(el.type)).length;
+/**
+ * How many lines an element occupies.
+ *
+ * Pagination asks this of every element in the script on every keystroke, and
+ * wrapping a paragraph is not free. Elements are immutable here — editing one
+ * makes a new object and leaves the rest alone — so the answer can be cached
+ * against the object itself and only the line actually being typed is measured
+ * again. The map is weak, so nothing is kept alive by having been counted.
+ */
+const lineCache = new WeakMap();
+
+export const countLines = (el, inDual = false) => {
+  const cached = lineCache.get(el);
+  if (cached && cached.dual === inDual) return cached.n;
+  const n = wrapLines(el.text || '', inDual ? DUAL_CHARS : charsPerLine(el.type)).length;
+  lineCache.set(el, { n, dual: inDual });
+  return n;
+};
 
 /**
  * Lay elements out onto pages.

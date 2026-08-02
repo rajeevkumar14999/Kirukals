@@ -29,18 +29,16 @@ const OPTIONS = {
   identifierNamesGenerator: 'mangled-shuffled',
   renameGlobals: false,
 
-  // The expensive, obvious things — prices, plan ids, feature names — stop
-  // being greppable.
+  // The literals are collected into one shuffled array, so reading the file
+  // top to bottom tells you nothing about where anything is used.
   stringArray: true,
-  stringArrayThreshold: 0.8,
-  stringArrayEncoding: ['base64'],
-  stringArrayIndexShift: true,
+  stringArrayThreshold: 0.75,
+  stringArrayEncoding: [],
+  stringArrayIndexShift: false,
   stringArrayRotate: true,
   stringArrayShuffle: true,
-  stringArrayWrappersCount: 2,
-  stringArrayWrappersType: 'function',
-  splitStrings: true,
-  splitStringsChunkLength: 8,
+  stringArrayWrappersCount: 0,
+  splitStrings: false,
 
   // Left off on purpose: these are what make obfuscated apps crawl.
   controlFlowFlattening: false,
@@ -48,7 +46,7 @@ const OPTIONS = {
   debugProtection: false,
   selfDefending: false,
 
-  numbersToExpressions: true,
+  numbersToExpressions: false,
   simplify: true,
   unicodeEscapeSequence: false,
 };

@@ -41,13 +41,62 @@ export default function Editor({
     [elements],
   );
 
+  const pageOf = useMemo(() => {
+    const m = new Map();
+    sheets.forEach((ids, i) => ids.forEach((id) => m.set(id, i)));
+    return m;
+  }, [sheets]);
+
+  /**
+   * Only the pages near the window are built.
+   *
+   * A screenplay is a stack of pages and a writer looks at one of them. Laying
+   * out all ninety on every keystroke is work nobody sees: the sheets keep
+   * their full height whether or not they have anything in them, so the scroll
+   * bar, the page numbers and the geometry are unchanged — what goes is the
+   * cost of the lines nobody is reading.
+   */
+  const [visible, setVisible] = useState(() => new Set([0, 1]));
+  const sections = useRef(new Map());
+
+  useEffect(() => {
+    const io = new IntersectionObserver(
+      (entries) => {
+        setVisible((prev) => {
+          const next = new Set(prev);
+          let changed = false;
+          for (const entry of entries) {
+            const i = Number(entry.target.dataset.page);
+            if (entry.isIntersecting) {
+              if (!next.has(i)) { next.add(i); changed = true; }
+            } else if (next.delete(i)) {
+              changed = true;
+            }
+          }
+          return changed ? next : prev;
+        });
+      },
+      // A screen's worth either side, so scrolling never arrives at a blank page.
+      { rootMargin: '1400px 0px' },
+    );
+    sections.current.forEach((node) => node && io.observe(node));
+    return () => io.disconnect();
+  }, [sheets.length]);
+
+  const activePage = pageOf.get(activeEl?.id) ?? 0;
+
+  const registerSection = useCallback((i, node) => {
+    if (node) sections.current.set(i, node);
+    else sections.current.delete(i);
+  }, []);
+
   const registerRef = useCallback((id, node) => {
     if (node) refs.current.set(id, node);
     else refs.current.delete(id);
   }, []);
 
-  const focusAt = (id, pos = 'end') => {
-    pending.current = { id, pos };
+  const focusAt = (id, pos = 'end', block = 'nearest') => {
+    pending.current = { id, pos, block };
   };
 
   // Apply queued focus after the DOM catches up with the new element list.
@@ -61,7 +110,7 @@ export default function Editor({
     const len = node.value.length;
     const pos = req.pos === 'end' ? len : req.pos === 'start' ? 0 : Math.min(req.pos, len);
     node.setSelectionRange(pos, pos);
-    node.scrollIntoView({ block: 'nearest' });
+    node.scrollIntoView({ block: req.block || 'nearest' });
   });
 
   // Jump requests from the scene navigator / search results.
@@ -75,7 +124,11 @@ export default function Editor({
       node.focus({ preventScroll: true });
       node.setSelectionRange(jump.pos ?? 0, jump.pos ?? 0);
       node.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return;
     }
+    // That page is not built yet. Marking it active builds it on the next
+    // render, and the queued focus lands the moment it exists.
+    focusAt(jump.id, jump.pos ?? 0, 'center');
   }, [jump]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -458,6 +511,26 @@ export default function Editor({
     setSugOpen(true);
   };
 
+  /* ---------------- stable handlers ---------------- */
+
+  /**
+   * The rows are memoised, and a memoised row is only worth having if its
+   * props hold still. These handlers close over the document and the caret, so
+   * a fresh one is born on every keystroke — and handing those straight to the
+   * rows would re-render every line in the script for every letter typed. On a
+   * sixty-page script that was seconds per keystroke.
+   *
+   * So the rows get a wrapper whose identity never changes, and the wrapper
+   * calls whichever version of the handler is current.
+   */
+  const live = useRef(null);
+  live.current = { handleChange, handleKeyDown, handleFocus, setThread };
+
+  const onChange = useCallback((i, raw) => live.current.handleChange(i, raw), []);
+  const onKeyDown = useCallback((e, i) => live.current.handleKeyDown(e, i), []);
+  const onFocus = useCallback((i) => live.current.handleFocus(i), []);
+  const onOpenComments = useCallback((id) => live.current.setThread(id), []);
+
   /* ---------------- render ---------------- */
 
   return (
@@ -467,7 +540,13 @@ export default function Editor({
           script carries it. */}
       <div className="pages" ref={pageRef} onMouseDown={() => setSugOpen(true)}>
         {sheets.map((ids, pageIndex) => (
-          <section className="page" key={pageIndex} aria-label={`Page ${pageIndex + 1}`}>
+          <section
+            className="page"
+            key={pageIndex}
+            data-page={pageIndex}
+            ref={(node) => registerSection(pageIndex, node)}
+            aria-label={`Page ${pageIndex + 1}`}
+          >
             {/* Page one carries no number, by convention. */}
             {pageIndex > 0 && (
               <span className="page__number" aria-hidden="true">{pageIndex + 1}.</span>
@@ -483,6 +562,11 @@ export default function Editor({
             )}
 
             {(() => {
+              // The page being written on is always built, wherever it has
+              // scrolled to — a jump from the scene list lands on it before the
+              // observer has had a chance to notice.
+              if (!visible.has(pageIndex) && pageIndex !== activePage) return null;
+
               // Rows, not elements: a pair of simultaneous speeches is one row
               // holding two columns, and everything else is a row of one.
               const onPage = ids.map((id) => elements[indexOf.get(id)]).filter(Boolean);
@@ -499,11 +583,11 @@ export default function Editor({
                   spellcheck={prefs.spellcheck !== false}
                   lang={prefs.docLanguage || 'en-US'}
                   threadOpen={thread === el.id}
-                  onOpenComments={setThread}
+                  onOpenComments={onOpenComments}
                   registerRef={registerRef}
-                  onChange={handleChange}
-                  onKeyDown={handleKeyDown}
-                  onFocus={handleFocus}
+                  onChange={onChange}
+                  onKeyDown={onKeyDown}
+                  onFocus={onFocus}
                 />
               );
 
