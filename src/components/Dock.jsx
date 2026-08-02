@@ -90,7 +90,7 @@ const TOP = [
  * build it again — which loses focus mid-interaction and detaches the very
  * node that was just clicked.
  */
-function Item({ id, label, on, badge, onClick, onDoubleClick }) {
+function Item({ id, label, on, badge, onClick }) {
   // No waiting to find out whether a second click is coming: a click opens,
   // a double click closes, and since a double click delivers its two clicks
   // first, the pair still ends closed. Holding the first click back behind a
@@ -100,8 +100,7 @@ function Item({ id, label, on, badge, onClick, onDoubleClick }) {
     <button
       className={`dock__item${on ? ' is-active' : ''}`}
       onClick={onClick}
-      onDoubleClick={onDoubleClick}
-      title={onDoubleClick ? `${label} — double-click to hide the panel` : label}
+      title={label}
       aria-pressed={Boolean(on)}
     >
       {ICONS[id]}
@@ -112,7 +111,7 @@ function Item({ id, label, on, badge, onClick, onDoubleClick }) {
 }
 
 export default function Dock({
-  active, menuOpen, badges = {}, theme, onSelect, onToggle, onMenu, onHelp, onAccount, onToggleTheme,
+  active, menuOpen, badges = {}, theme, onSelect, onMenu, onHelp, onAccount, onToggleTheme,
 }) {
   return (
     <nav className="dock" aria-label="Sections">
@@ -125,7 +124,6 @@ export default function Dock({
             badge={badges[t.id]}
             on={t.id === 'menu' ? menuOpen : active === t.id}
             onClick={t.id === 'menu' ? onMenu : () => onSelect(t.id)}
-            onDoubleClick={t.id === 'menu' ? undefined : () => onToggle(t.id)}
           />
         ))}
       </div>

@@ -100,9 +100,10 @@ export default function App() {
   // A session held by the server outranks whatever this browser remembers:
   // signing in on one machine should be enough for the next one.
   useEffect(() => {
-    if (!hasServer() || session) return;
+    if (!hasServer() || session || signingOut.current) return;
     let cancelled = false;
     currentRemoteSession().then((remote) => {
+      if (signingOut.current) return;
       if (!cancelled && remote) {
         setScope(remote.uid);
         setSession(remote);
@@ -117,6 +118,8 @@ export default function App() {
   }, [prefs.theme]);
 
   const [view, setView] = useState('editor');
+  // Set while signing out, so the session restore below does not race it.
+  const signingOut = useRef(false);
   const [profileTab, setProfileTab] = useState('board');
   const [profileThreadId, setProfileThreadId] = useState(null);
 
@@ -140,10 +143,19 @@ export default function App() {
     ensureTrial(next.uid);
   };
 
-  const leave = ({ guestExpired = false } = {}) => {
+  const leave = async ({ guestExpired = false } = {}) => {
+    // The server session must go first. Clearing the local one while the
+    // remote is still alive lets the restore below sign the person straight
+    // back in — which is why signing out used to take two attempts.
+    signingOut.current = true;
     endSession();
-    // Sign out of the server too, or the next visit signs straight back in.
-    if (hasServer()) signOutRemote();
+    if (hasServer()) {
+      try {
+        await signOutRemote();
+      } catch {
+        /* offline: the local session is cleared regardless */
+      }
+    }
     // A guest has nowhere to sign back in to, so their drafts go with them.
     // The trial clock deliberately survives sign-out — that is what makes the
     // ten minutes per account rather than per login.
@@ -152,6 +164,7 @@ export default function App() {
     signOut();
     setSession(null);
     setView('editor');
+    signingOut.current = false;
   };
 
   if (!session) {
@@ -873,6 +886,12 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
           badges={{ comments: commentCount, account: unread }}
           onSelect={(id) => {
             setMenuOpen(false);
+            // Clicking the section already showing puts the panel away; any
+            // other icon switches to it and brings the panel back.
+            if (id === section && panelOpen) {
+              setPanelOpen(false);
+              return;
+            }
             setSection(id);
             setPanelOpen(true);
             // The two production sheets take the canvas; anything else hands
@@ -880,14 +899,6 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
             if (id === 'preproduction') setDocView(`pp:${ppSheet}`);
             else if (id === 'analysis') setDocView('analysis');
             else if (String(docView).startsWith('pp:') || docView === 'analysis') setDocView('screenplay');
-          }}
-          // Double-click puts the panel away; a single click on any icon
-          // brings it back. Deliberately one direction each: a double click
-          // arrives as two clicks, so a toggle here would race the click that
-          // preceded it and land differently depending on how fast you are.
-          onToggle={() => {
-            setMenuOpen(false);
-            setPanelOpen(false);
           }}
           onMenu={() => setMenuOpen((m) => !m)}
           theme={prefs.theme}
