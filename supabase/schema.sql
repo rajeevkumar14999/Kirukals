@@ -29,6 +29,26 @@ create policy "read own profile"   on public.profiles for select using (auth.uid
 drop policy if exists "update own profile" on public.profiles;
 create policy "update own profile"   on public.profiles for update using (auth.uid() = id);
 
+-- Someone may rename themselves; nobody may promote themselves. Row-level
+-- security cannot guard a single column, so a trigger does it. auth.uid() is
+-- null when the statement comes from the SQL editor or a server key, which is
+-- when changing a role is legitimate.
+create or replace function public.protect_role()
+returns trigger language plpgsql security definer set search_path = public
+as $$
+begin
+  if new.role is distinct from old.role and auth.uid() is not null then
+    raise exception 'A role can only be changed by an administrator.';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_protect_role on public.profiles;
+create trigger profiles_protect_role
+  before update on public.profiles
+  for each row execute function public.protect_role();
+
 -- A profile is created the moment an account is, so the app never meets a
 -- signed-in user it knows nothing about.
 create or replace function public.handle_new_user()
