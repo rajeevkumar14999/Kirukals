@@ -176,7 +176,20 @@ export default function Editor({
     setSugIndex(0);
     // Styles are ranges into the text, so every edit has to move them.
     const styles = remap(el.styles, el.text, text);
-    replaceAt(i, { text, type, styles }, { coalesceKey: `text:${el.id}` });
+
+    /*
+      Where one undo step should end.
+
+      Finishing a word ends it, so Ctrl+Z takes back a word rather than a
+      paragraph. So does deleting: somebody who types a sentence and then
+      backspaces over it has done two things, and one undo should not put
+      both back at once.
+    */
+    const grew = text.length > el.text.length;
+    const justTyped = grew ? text.slice(-1) : "";
+    const endsRun = !grew || /[\s.,;:!?'"()—–-]/.test(justTyped);
+
+    replaceAt(i, { text, type, styles }, { coalesceKey: `text:${el.id}`, endsRun });
   };
 
   const setType = (i, type) => {

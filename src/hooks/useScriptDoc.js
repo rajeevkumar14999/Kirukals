@@ -3,6 +3,21 @@ import { useCallback, useRef, useState } from 'react';
 const LIMIT = 200;
 const COALESCE_MS = 800;
 
+/*
+  How much typing one Ctrl+Z takes back.
+
+  A step used to end only when somebody stopped typing for most of a
+  second — which meant a writer in flow produced one enormous step, and a
+  single undo swallowed three paragraphs. That is not what any editor does
+  and not what anybody expects.
+
+  A step now ends the way it does in a word processor: at a word, at a
+  punctuation mark, after a couple of dozen characters, or when the writer
+  pauses. Undo then takes back a word or a phrase, and pressing it again
+  takes back the one before.
+*/
+const RUN_LIMIT = 24;
+
 /**
  * Document state with undo/redo.
  *
@@ -16,6 +31,7 @@ export function useScriptDoc(initialDoc) {
   const future = useRef([]);
   const lastKey = useRef(null);
   const lastTime = useRef(0);
+  const runChars = useRef(0);
   const [, bump] = useState(0);
 
   /**
@@ -32,21 +48,32 @@ export function useScriptDoc(initialDoc) {
   const caret = useRef(null);
   const noteCaret = useCallback((where) => { caret.current = where; }, []);
 
-  const update = useCallback((producer, { coalesceKey = null } = {}) => {
+  const update = useCallback((producer, { coalesceKey = null, endsRun = false } = {}) => {
     setDocState((prev) => {
       const next = typeof producer === 'function' ? producer(prev) : producer;
       if (next === prev) return prev;
 
       const now = Date.now();
       const sameRun =
-        coalesceKey !== null && coalesceKey === lastKey.current && now - lastTime.current < COALESCE_MS;
+        coalesceKey !== null &&
+        coalesceKey === lastKey.current &&
+        now - lastTime.current < COALESCE_MS &&
+        runChars.current < RUN_LIMIT;
 
       if (!sameRun) {
         past.current = [...past.current.slice(-LIMIT + 1), snapshot(prev, caret.current)];
         future.current = [];
       }
+      runChars.current = sameRun ? runChars.current + 1 : 1;
       lastKey.current = coalesceKey;
       lastTime.current = now;
+
+      // A word has been finished, or something other than typing happened.
+      // Either way the next edit starts a fresh step.
+      if (endsRun) {
+        lastKey.current = null;
+        runChars.current = 0;
+      }
       bump((n) => n + 1);
       return { ...next, updatedAt: now };
     });
@@ -57,6 +84,7 @@ export function useScriptDoc(initialDoc) {
     past.current = [];
     future.current = [];
     lastKey.current = null;
+    runChars.current = 0;
     setDocState(newDoc);
     bump((n) => n + 1);
   }, []);
