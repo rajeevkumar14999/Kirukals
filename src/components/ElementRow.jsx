@@ -81,6 +81,11 @@ function ElementRow({
           lang={lang}
           placeholder={isActive ? cfg.label : ''}
           onChange={(e) => onChange(index, e.target.value)}
+          // Every way a caret can move: typed into, clicked in, arrowed
+          // through. Undo needs to know where it was, not where the line was.
+          onSelect={onCaretMove}
+          onClick={onCaretMove}
+          onKeyUp={onCaretMove}
           onKeyDown={(e) => onKeyDown(e, index)}
           onFocus={() => onFocus(index)}
           onClick={onClick}

@@ -280,7 +280,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
     initial.current = (first && loadDoc(first.id)) || saveDoc(blankDoc());
   }
 
-  const { doc, update, reset, undo, redo, canUndo, canRedo } = useScriptDoc(initial.current);
+  const { doc, update, reset, undo, redo, canUndo, canRedo, noteCaret } = useScriptDoc(initial.current);
 
   // Derived from the payment ledger, so a verified payment shows up as soon as
   // the dialog closes.
@@ -841,7 +841,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
 
   const menus = buildMenus({
     doc, session, prefs, setPrefs, active, pinned,
-    canUndo, canRedo, undo, redo,
+    canUndo, canRedo, undo: stepBack, redo: stepForward,
     section, panelOpen, setSection, setPanelOpen,
     setDialog, setDocView, openSheet, setActiveType, openSettings,
     newDoc, printScript, togglePin,
@@ -859,11 +859,11 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
       const k = e.key.toLowerCase();
       if (k === 'z') {
         e.preventDefault();
-        if (e.shiftKey) redo();
-        else undo();
+        if (e.shiftKey) stepForward();
+        else stepBack();
       } else if (k === 'y') {
         e.preventDefault();
-        redo();
+        stepForward();
       } else if (k === 'f') {
         e.preventDefault();
         setDialog('find');
@@ -879,9 +879,46 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
     return () => document.removeEventListener('keydown', onKey);
   }, [doc, undo, redo, flushSave]);
 
-  const onActiveChange = useCallback((element, i) => {
+  /**
+   * Where the caret is, told to two places.
+   *
+   * The screen needs it to know which line is active. The history needs it
+   * so that undoing can put the writer back where the change happened —
+   * without that, the text returns and the caret does not, which is the
+   * half of undo people actually notice.
+   */
+  const onActiveChange = useCallback((element, i, pos) => {
     setActive((prev) => (prev.element === element && prev.i === i ? prev : { element, i }));
-  }, []);
+    if (element?.id) noteCaret({ id: element.id, pos: pos ?? null });
+  }, [noteCaret]);
+
+  /**
+   * Closing a dialog gives the writing back the caret.
+   *
+   * Every shortcut that opens something — find, word count, the tagger —
+   * takes focus away from the page. Handing it back is not a courtesy: a
+   * writer who presses Escape and then types expects the letters to land
+   * in the script, and without this they land nowhere.
+   */
+  const wasOpen = useRef(null);
+  useEffect(() => {
+    if (dialog) { wasOpen.current = active.element?.id || null; return; }
+    if (!wasOpen.current) return;
+    const id = wasOpen.current;
+    wasOpen.current = null;
+    setJump({ id, pos: null, at: Date.now() });
+  }, [dialog]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Undo or redo, then go back to the line it happened on. */
+  const stepBack = useCallback(() => {
+    const where = undo();
+    if (where?.id) setJump({ ...where, at: Date.now() });
+  }, [undo]);
+
+  const stepForward = useCallback(() => {
+    const where = redo();
+    if (where?.id) setJump({ ...where, at: Date.now() });
+  }, [redo]);
 
   return (
     <div className={`app${prefs.focusMode ? ' app--focus' : ''}`}>
@@ -890,8 +927,8 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         stats={stats}
         activeType={active.element?.type}
         onSetType={setActiveType}
-        undo={undo}
-        redo={redo}
+        undo={stepBack}
+        redo={stepForward}
         canUndo={canUndo}
         canRedo={canRedo}
         prefs={prefs}

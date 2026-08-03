@@ -122,13 +122,15 @@ export default function Editor({
     const node = refs.current.get(jump.id);
     if (node) {
       node.focus({ preventScroll: true });
-      node.setSelectionRange(jump.pos ?? 0, jump.pos ?? 0);
+      // No offset means "put it back where it was", not "put it at the start".
+      const where = jump.pos ?? node.value.length;
+      node.setSelectionRange(where, where);
       node.scrollIntoView({ block: 'center', behavior: 'smooth' });
       return;
     }
     // That page is not built yet. Marking it active builds it on the next
     // render, and the queued focus lands the moment it exists.
-    focusAt(jump.id, jump.pos ?? 0, 'center');
+    focusAt(jump.id, jump.pos ?? 'end', 'center');
   }, [jump]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -524,9 +526,12 @@ export default function Editor({
    * calls whichever version of the handler is current.
    */
   const live = useRef(null);
-  live.current = { handleChange, handleKeyDown, handleFocus, setThread };
+  live.current = { handleChange, handleKeyDown, handleFocus, setThread, reportCaret };
 
   const onChange = useCallback((i, raw) => live.current.handleChange(i, raw), []);
+  // A caret that moves within a line has to be reported too, or undo returns
+  // to where the writer was several words ago.
+  const onCaretMove = useCallback(() => live.current.reportCaret(), []);
   const onKeyDown = useCallback((e, i) => live.current.handleKeyDown(e, i), []);
   const onFocus = useCallback((i) => live.current.handleFocus(i), []);
   const onOpenComments = useCallback((id) => live.current.setThread(id), []);
