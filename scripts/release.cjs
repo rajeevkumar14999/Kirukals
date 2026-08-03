@@ -20,7 +20,15 @@ const os = require('node:os');
 const ROOT = path.join(__dirname, '..');
 const RELEASE = path.join(ROOT, 'release');
 const DOWNLOADS = path.join(ROOT, 'public', 'downloads');
-const OUT = path.join(os.tmpdir(), 'kirukals-release');
+/*
+  A folder per version.
+
+  The last build is often still running — it is the one you opened to check
+  the last release — and Windows will not delete a folder whose executable
+  is in use. Giving each build its own folder means a release never waits on
+  somebody remembering to close the app.
+*/
+const OUT = path.join(os.tmpdir(), `kirukals-release-${process.argv[2] || 'next'}`);
 
 const version = process.argv[2];
 if (!/^\d+\.\d+\.\d+$/.test(version || '')) {
@@ -93,6 +101,7 @@ console.log(`
   release/     every installer ever built, ${previous} included
   downloads/   ${version} only, which is what the updater serves
 
-  To go back: install release/Kirukals-Setup-${previous}.exe over the top.
+  To look at it:  ${path.join(OUT, "win-unpacked", "Kirukals.exe")}
+  To go back:     install release/Kirukals-Setup-${previous}.exe over the top.
   Scripts and pictures are untouched by an install either way.
 `);

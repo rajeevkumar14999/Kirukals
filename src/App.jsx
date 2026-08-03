@@ -842,12 +842,14 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
   /** Undo or redo, then go back to the line it happened on. */
   const stepBack = useCallback(() => {
     const where = undo();
-    if (where?.id) setJump({ ...where, at: Date.now() });
+    // 'nearest' so the page only moves if the line is actually off-screen.
+    if (where?.id) setJump({ ...where, at: Date.now(), scroll: 'nearest' });
   }, [undo]);
 
   const stepForward = useCallback(() => {
     const where = redo();
-    if (where?.id) setJump({ ...where, at: Date.now() });
+    // 'nearest' so the page only moves if the line is actually off-screen.
+    if (where?.id) setJump({ ...where, at: Date.now(), scroll: 'nearest' });
   }, [redo]);
 
   const menus = buildMenus({
@@ -917,7 +919,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
     if (!wasOpen.current) return;
     const id = wasOpen.current;
     wasOpen.current = null;
-    setJump({ id, pos: null, at: Date.now() });
+    setJump({ id, pos: null, at: Date.now(), scroll: 'nearest' });
   }, [dialog]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

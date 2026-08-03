@@ -119,18 +119,31 @@ export default function Editor({
     const i = elements.findIndex((e) => e.id === jump.id);
     if (i === -1) return;
     setActive(i);
+
+    /*
+      How far the page should move to show it.
+
+      A jump from the scene list is a journey: centre it, and glide, so the
+      writer can see they have gone somewhere. Undo is not a journey — the
+      line is usually the one already in front of them, and scrolling it to
+      the middle of the screen on every Ctrl+Z makes the page lurch under
+      somebody who was only fixing a word.
+    */
+    const block = jump.scroll || 'center';
+    const smooth = block === 'center';
+
     const node = refs.current.get(jump.id);
     if (node) {
       node.focus({ preventScroll: true });
       // No offset means "put it back where it was", not "put it at the start".
       const where = jump.pos ?? node.value.length;
       node.setSelectionRange(where, where);
-      node.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      node.scrollIntoView(smooth ? { block, behavior: 'smooth' } : { block });
       return;
     }
     // That page is not built yet. Marking it active builds it on the next
     // render, and the queued focus lands the moment it exists.
-    focusAt(jump.id, jump.pos ?? 'end', 'center');
+    focusAt(jump.id, jump.pos ?? 'end', block);
   }, [jump]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
