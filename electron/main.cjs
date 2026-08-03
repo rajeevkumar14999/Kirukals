@@ -284,16 +284,17 @@ if (!app.requestSingleInstanceLock()) {
 
   // The whole Google sign-in, run from here: the renderer gets a token to
   // trade, and never touches the browser or the loopback listener itself.
-  ipcMain.handle('auth:google', async () => {
+  ipcMain.handle('auth:google', async (event) => {
     try {
       return {
         ok: true,
         ...(await signInWithGoogle({
           clientId: process.env.KIRUKALS_GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID,
           clientSecret: process.env.KIRUKALS_GOOGLE_CLIENT_SECRET || GOOGLE_CLIENT_SECRET,
-          // The card opens over the app and belongs to it, so it cannot end up
-          // behind the window somebody is waiting at.
-          parentWindow: win,
+          // The window that asked. Taken from the request rather than a
+          // variable held somewhere, so the card belongs to whichever window
+          // the person is actually sitting at.
+          parentWindow: BrowserWindow.fromWebContents(event.sender),
         })),
       };
     } catch (err) {
