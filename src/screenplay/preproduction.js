@@ -103,6 +103,8 @@ export function tidyMapUrl(value) {
   }
 }
 
+import { adopt, keep, url as vaultUrl } from './vault';
+
 /* ------------------------------- portfolios ------------------------------ */
 
 /** Storage is a few megabytes in total, so a headshot is kept as a thumbnail. */
@@ -160,4 +162,39 @@ function shrinkImage(file, maxEdge = MAX_EDGE, quality = 0.72) {
     };
     reader.readAsDataURL(file);
   });
+}
+
+/**
+ * Where to point an <img> at an attachment.
+ *
+ * Two kinds exist and both have to work. A picture attached today is a
+ * reference into the vault. One attached before the vault existed is a data
+ * URL sitting in the script itself — those are still shown, and moved into the
+ * vault the first time they are asked for, so a shot list gradually stops
+ * carrying its own photographs.
+ */
+export async function sourceFor(attachment, onMoved) {
+  if (!attachment) return null;
+  if (attachment.ref) return vaultUrl(attachment.ref);
+  if (attachment.data) {
+    if (onMoved) {
+      const ref = await adopt(attachment.data, attachment);
+      if (ref) onMoved(ref);
+    }
+    return attachment.data;
+  }
+  return null;
+}
+
+/** Every picture the script still points at, for sweeping and for backups. */
+export function referencesIn(doc) {
+  const found = new Set();
+  const walk = (value) => {
+    if (!value || typeof value !== 'object') return;
+    if (Array.isArray(value)) { value.forEach(walk); return; }
+    if (typeof value.ref === 'string' && value.ref.startsWith('img_')) found.add(value.ref);
+    Object.values(value).forEach(walk);
+  };
+  walk(doc);
+  return [...found];
 }

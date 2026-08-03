@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import Attachment from './Attachment';
 import { SLIDES, buildSlides, emptyDeck, printDeck } from '../screenplay/deck';
 import { readImageFile } from '../screenplay/preproduction';
 import '../styles/deck.css';
@@ -119,7 +120,7 @@ export default function DeckSheet({ doc, stats, board, onChange, onNotice }) {
           <label className="deck-cover">
             <span>Cover image</span>
             {deck.cover ? (
-              <img src={deck.cover.data} alt="Cover" />
+              <Attachment of={deck.cover} alt="Cover" />
             ) : (
               <em>Upload a still or a reference frame</em>
             )}
@@ -160,7 +161,7 @@ export default function DeckSheet({ doc, stats, board, onChange, onNotice }) {
           <div className="deck-look">
             {(deck.look || []).map((im, i) => (
               <figure key={`${im.name}-${i}`}>
-                <img src={im.data} alt="" />
+                <Attachment of={im} />
                 <button
                   className="linkish"
                   title="Remove"
@@ -295,7 +296,7 @@ function Slide({ slide, theme = 'dark', film, index = 0, count = 0, big }) {
 
       {slide.kind === 'images' && (
         <div className="slide__grid">
-          {slide.images.map((im, i) => <img key={i} src={im.data} alt="" />)}
+          {slide.images.map((im, i) => <Attachment key={i} of={im} />)}
         </div>
       )}
 

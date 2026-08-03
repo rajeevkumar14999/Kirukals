@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import Attachment from './Attachment';
 import SheetRow from './SheetRow';
 import {
   ANGLES,
@@ -189,7 +190,7 @@ export default function ShotSheet({ doc, stats, board, onChange, onJump, onNotic
                             {shot.ref ? (
                               <>
                                 <a href={shot.ref.data} target="_blank" rel="noreferrer noopener" title="Open full size">
-                                  <img src={shot.ref.data} alt={`Reference for shot ${shotNumber(si, i)}`} />
+                                  <Attachment of={shot.ref} alt={`Reference for shot ${shotNumber(si, i)}`} />
                                 </a>
                                 <span className="shot-ref__acts">
                                   <label title="Replace this reference">↻

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import Attachment from './Attachment';
 import SheetRow from './SheetRow';
 import {
   SOURCES,
@@ -214,7 +215,7 @@ export default function CostumeSheet({ doc, stats, board, onChange, onJump, onNo
                                   <div className="pp-shot">
                                     {option.image ? (
                                       <a href={option.image.data} target="_blank" rel="noreferrer noopener">
-                                        <img src={option.image.data} alt="" />
+                                        <Attachment of={option.image} />
                                       </a>
                                     ) : (
                                       <span>No reference</span>

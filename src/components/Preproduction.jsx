@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import Attachment from './Attachment';
 import {
   extractCast,
   extractLocations,
@@ -392,7 +393,7 @@ function CastSheet({ doc, board, onChange, onJump, onNotice }) {
                       <div className="pp-fields pp-fields--actor">
                         <div className="pp-shot">
                           {option.portfolio?.kind === 'image' ? (
-                            <img src={option.portfolio.data} alt={option.name || 'Portfolio'} />
+                            <Attachment of={option.portfolio} alt={option.name || 'Portfolio'} />
                           ) : option.portfolio ? (
                             <a href={option.portfolio.data} download={option.portfolio.name}>
                               {option.portfolio.name}
