@@ -2,7 +2,7 @@
   "name": "kirukals",
   "productName": "Kirukals",
   "private": true,
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Write screenplays with industry-standard formatting, and plan the shoot from the same script.",
   "author": "Kirukals",
   "type": "module",
@@ -23,7 +23,8 @@
     "test:smoke": "electron test/smoke.cjs",
     "test:build": "vite build --base ./",
     "release": "node scripts/release.cjs",
-    "desktop:build:mac": "npm run build && electron-builder --mac"
+    "desktop:build:mac": "npm run build && electron-builder --mac",
+    "icon": "electron scripts/make-ico.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.111.0",
@@ -68,7 +69,7 @@
           ]
         }
       ],
-      "icon": "build/icon.png"
+      "icon": "build/icon.ico"
     },
     "publish": [
       {
@@ -95,7 +96,6 @@
         ]
       }
     ],
-    "icon": "build/icon.png",
     "mac": {
       "category": "public.app-category.productivity",
       "target": [
