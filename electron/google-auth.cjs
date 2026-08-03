@@ -1,6 +1,6 @@
 const http = require('node:http');
 const crypto = require('node:crypto');
-const { shell } = require('electron');
+const { BrowserWindow, shell } = require('electron');
 
 /**
  * Signing in with Google from an installed application.
@@ -41,7 +41,20 @@ const donePage = (ok, detail = '') => `<!doctype html><meta charset="utf-8">
  * Run the whole dance and return Google's tokens.
  * Resolves { idToken, accessToken }, or rejects with something readable.
  */
-function signInWithGoogle({ clientId, clientSecret }) {
+function signInWithGoogle({ clientId, clientSecret, parentWindow } = {}) {
+  let popup = null;
+
+  /** Close the card and hand the sign-in to the real browser. */
+  const openInBrowser = (url) => {
+    if (popup && !popup.isDestroyed()) {
+      const going = popup;
+      popup = null;
+      going.removeAllListeners("closed");
+      going.close();
+    }
+    shell.openExternal(url);
+  };
+
   return new Promise((resolve, reject) => {
     if (!clientId) {
       reject(new Error('No Google client ID is configured for the desktop app.'));
@@ -105,6 +118,13 @@ function signInWithGoogle({ clientId, clientSecret }) {
         }
 
         finish(true);
+        // The card has done its job. Nobody should have to close it.
+        if (popup && !popup.isDestroyed()) {
+          const going = popup;
+          popup = null;
+          going.removeAllListeners("closed");
+          going.close();
+        }
         resolve({ idToken: tokens.id_token, accessToken: tokens.access_token });
       } catch (err) {
         finish(false, err.message);
@@ -127,7 +147,57 @@ function signInWithGoogle({ clientId, clientSecret }) {
         state,
         prompt: 'select_account',
       });
-      shell.openExternal(`${AUTH}?${params}`);
+      const url = `${AUTH}?${params}`;
+
+      /*
+        A card, not a browser.
+
+        Sending somebody to their whole browser to sign in means they lose
+        sight of the app, pick their account, and are then left looking at a
+        page saying they may close the tab — which they have to do themselves.
+        A small window over the app is the thing everybody recognises: choose
+        an account and it disappears.
+
+        It closes itself from the server above, the moment the code arrives,
+        so nothing is left for the person to tidy up.
+      */
+      popup = new BrowserWindow({
+        width: 480,
+        height: 660,
+        parent: parentWindow || undefined,
+        modal: Boolean(parentWindow),
+        title: "Sign in with Google",
+        autoHideMenuBar: true,
+        minimizable: false,
+        maximizable: false,
+        backgroundColor: "#ffffff",
+        webPreferences: { nodeIntegration: false, contextIsolation: true, partition: "persist:google" },
+      });
+
+      // Somebody who closes the card has changed their mind, and should not
+      // leave a server listening behind them.
+      popup.on("closed", () => {
+        popup = null;
+        if (server.listening) {
+          server.close();
+          reject(new Error("Sign-in was cancelled."));
+        }
+      });
+
+      /*
+        Google refuses to sign anybody in from a window it believes is an
+        embedded browser, and says so with disallowed_useragent. If that
+        happens the card is closed and the real browser opened instead —
+        which is slower to use but always works.
+      */
+      popup.webContents.on("did-fail-load", () => openInBrowser(url));
+      popup.webContents.on("did-navigate", (_e, landed) => {
+        if (landed.includes("disallowed_useragent") || landed.includes("error/embedded")) {
+          openInBrowser(url);
+        }
+      });
+
+      popup.loadURL(url);
     });
 
     // Nobody should be left waiting on a browser tab they closed.

@@ -350,12 +350,12 @@ export default function AuthPage({ onAuthed, theme, onToggleTheme, guestExpired 
                   <path fill="#FBBC05" d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z" />
                   <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.42 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z" />
                 </svg>
-                {waitingForBrowser ? 'Waiting for your browser…' : 'Continue with Google'}
+                {waitingForBrowser ? 'Waiting for Google…' : 'Continue with Google'}
               </button>
               {waitingForBrowser && (
                 <p className="sheet__hint">
-                  Finish signing in in the browser window that just opened. This app takes over
-                  as soon as you do.
+                  Choose your account in the window that just opened. It closes itself and you
+                  are straight in.
                 </p>
               )}
               {googleError && <p className="fld__error">{googleError}</p>}

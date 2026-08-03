@@ -291,6 +291,9 @@ if (!app.requestSingleInstanceLock()) {
         ...(await signInWithGoogle({
           clientId: process.env.KIRUKALS_GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID,
           clientSecret: process.env.KIRUKALS_GOOGLE_CLIENT_SECRET || GOOGLE_CLIENT_SECRET,
+          // The card opens over the app and belongs to it, so it cannot end up
+          // behind the window somebody is waiting at.
+          parentWindow: win,
         })),
       };
     } catch (err) {
