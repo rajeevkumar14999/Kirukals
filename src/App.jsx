@@ -46,6 +46,7 @@ import {
   hasProduction,
   subscriptionFor,
 } from './billing/subscription';
+import { cachedLicence, refreshLicence, worthChecking } from './billing/licence';
 import { ensureTrial, spendTrial, trialLeft } from './billing/trial';
 import { unreadCount } from './community/store';
 import { getInstallPrompt, install, isInstalled, onInstallable } from './install';
@@ -284,12 +285,38 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
   // Derived from the payment ledger, so a verified payment shows up as soon as
   // the dialog closes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  /**
+   * What the server says about this account.
+   *
+   * Asked on the way in and every few hours after, and remembered in
+   * between so a lost connection is not a lost month. The machine no
+   * longer decides whether it has been paid for.
+   */
+  const [licence, setLicence] = useState(() => cachedLicence(session.uid));
+
+  useEffect(() => {
+    if (session.guest) return undefined;
+    let stopped = false;
+    const ask = () => {
+      if (!worthChecking(session.uid)) return;
+      refreshLicence(session.uid).then((found) => { if (!stopped) setLicence(found); });
+    };
+    ask();
+    const timer = setInterval(ask, 60 * 60 * 1000);
+    return () => { stopped = true; clearInterval(timer); };
+  }, [session.uid, session.guest]);
+
   const subscription = useMemo(() => subscriptionFor(session.uid), [session.uid, billingTick]);
 
-  const isPro = subscription.status === 'active';
+  // Paid is what the server says. The old on-device ledger is still honoured
+  // so that nobody who was already approved is suddenly not.
+  const paid = licence.active || subscription.status === 'active';
+  const isPro = paid;
   // Preproduction is sold on its own; billingTick refreshes it after a payment.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const production = useMemo(() => hasProduction(session), [session, billingTick]);
+  // One price now buys the whole program, preproduction included. The old
+  // separate production plan is still honoured for anybody who bought it.
+  const production = paid || hasProduction(session); // eslint-disable-line
   // Whoever administers this install is not charged to use their own app.
   const exempt = isPro || session.role === 'admin';
 
@@ -323,7 +350,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
    * A *pending* payment is not a paid account — the lock stays on until an
    * admin approves it, which is the whole point of verifying.
    */
-  const locked = !exempt && trialMs <= 0 && subscription.status !== 'active';
+  const locked = !exempt && trialMs <= 0 && !paid;
 
   // A guest cannot subscribe, so their time ending erases the session instead.
   useEffect(() => {
