@@ -27,7 +27,6 @@ export default function TopBar({
   onShortcuts,
   onChangePassword,
   savedAt,
-  syncState,
   stats,
   session,
   onSignOut,
@@ -172,30 +171,9 @@ export default function TopBar({
               <li className="account__head">
                 <b>{session?.name}</b>
                 <span>{session?.guest ? 'Guest session — drafts clear on sign out' : session?.email}</span>
-                {/* Where this account's work has got to, said where the
-                    account is — not in the corner of the writing. */}
-                {session?.offline && (
-                  <em className="account__sync account__sync--error">
-                    Signed in on this device — the server has not been reached yet
-                  </em>
-                )}
-                {!session?.offline && syncState && syncState.state !== 'idle' && (
-                  <em className={`account__sync account__sync--${syncState.state}`}>
-                    {syncState.state === 'syncing' && 'Syncing with the server…'}
-                    {syncState.state === 'synced' && (
-                      <>
-                        In the cloud
-                        {syncState.at ? ` · ${new Date(syncState.at).toLocaleTimeString()}` : ''}
-                        {syncState.pulled > 0 ? ` · ${syncState.pulled} brought down` : ''}
-                      </>
-                    )}
-                    {syncState.state === 'error' && (
-                      <span title={syncState.message}>
-                        On this computer only — the server could not be reached
-                      </span>
-                    )}
-                  </em>
-                )}
+                {/* Nothing to say about syncing: the scripts are on this
+                    machine and have never been anywhere else. */}
+                <em className="account__sync">On this computer</em>
               </li>
               <li className="menu__sep">
                 <button onClick={() => { setAccount(false); onOpenProfile('board'); }}>

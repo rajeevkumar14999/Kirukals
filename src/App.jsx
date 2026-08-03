@@ -51,7 +51,6 @@ import { unreadCount } from './community/store';
 import { getInstallPrompt, install, isInstalled, onInstallable } from './install';
 import { isConfigured as hasServer } from './backend/supabase';
 import { currentRemoteSession, signOutRemote } from './backend/account';
-import { fetchRemote, listRemote, pushRemote, reconcile } from './backend/scripts';
 import { applyPendingUpdate, dismissUpdate, onUpdateReady, updatePending } from './update';
 
 // Read once by the sign-in page to explain why a guest was thrown out.
@@ -272,7 +271,6 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
   // Set when a save is refused for want of room; cleared by the next save that works.
   const [storageFull, setStorageFull] = useState(null);
   // How the copy on the server is doing. Never blocks the writing.
-  const [syncState, setSyncState] = useState({ state: 'idle' });
 
   // Reopen the most recent script, or start a fresh one on first run.
   const initial = useRef(null);
@@ -371,45 +369,17 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
   useEffect(() => onBackupState(setBackup), []);
 
   /**
-   * Meet the server once, on the way in.
+   * There is no script sync, and that is the design.
    *
-   * Anything written on another machine and newer than the local copy is
-   * pulled down; anything written here while signed out is pushed up. Nothing
-   * is deleted on either side — a writer should never lose pages to a sync.
+   * A screenplay is a file on the writer's own machine and stays there. The
+   * account exists to know who somebody is and that they have paid; it has
+   * never held a page of anybody's work and is not going to.
+   *
+   * The cost of that is real and is said plainly on the website rather than
+   * discovered: a second computer starts empty, and a dead hard drive takes
+   * the drafts with it. External backups answers both, which is why it is a
+   * menu item and not a promise nobody checks.
    */
-  useEffect(() => {
-    // An offline session has no token to speak to the server with. Its work is
-    // safe on this device and goes up the next time there is a connection.
-    if (!session.remote || session.offline) return;
-    let cancelled = false;
-
-    (async () => {
-      try {
-        setSyncState({ state: 'syncing' });
-        const remote = await listRemote();
-        const { push, pull } = reconcile(loadIndex(), remote);
-
-        for (const id of pull) {
-          if (cancelled) return;
-          const doc = await fetchRemote(id);
-          if (doc) saveDoc(doc);
-        }
-        for (const id of push) {
-          if (cancelled) return;
-          const doc = loadDoc(id);
-          if (doc) await pushRemote(doc, session.uid);
-        }
-
-        if (cancelled) return;
-        setIndex(loadIndex());
-        setSyncState({ state: 'synced', at: Date.now(), pulled: pull.length, pushed: push.length });
-      } catch (err) {
-        if (!cancelled) setSyncState({ state: 'error', message: err.message });
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [session]);
   useEffect(() => onUpdateReady(setUpdateReady), []);
 
   const openDocument = (doc.documents || []).find((d) => d.id === docView) || null;
@@ -543,15 +513,6 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         setSavedAt(stamped.updatedAt);
         setIndex(loadIndex());
         setStorageFull(null);
-
-        // The local copy is the one being edited; the server gets a copy as
-        // soon as it can. A failed push is not an editing error — the work is
-        // already safe on this machine — so it is noted, not thrown.
-        if (session.remote) {
-          pushRemote(stamped, session.uid)
-            .then(() => setSyncState({ state: 'synced', at: Date.now() }))
-            .catch((err) => setSyncState({ state: 'error', message: err.message }));
-        }
       } catch (e) {
         if (e instanceof StorageFullError) setStorageFull(e.message);
         else throw e;
@@ -919,7 +880,6 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         onChangePassword={() => setDialog('password')}
         menus={menus}
         savedAt={savedAt}
-        syncState={syncState}
         session={session}
         onSignOut={onSignOut}
         onOpenAdmin={onOpenAdmin}
