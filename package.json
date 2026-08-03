@@ -2,7 +2,7 @@
   "name": "kirukals",
   "productName": "Kirukals",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Write screenplays with industry-standard formatting, and plan the shoot from the same script.",
   "author": "Kirukals",
   "type": "module",
@@ -21,7 +21,8 @@
     "test": "node test/offline.test.mjs && node test/net.test.mjs",
     "test:perf": "electron test/perf.cjs",
     "test:smoke": "electron test/smoke.cjs",
-    "test:build": "vite build --base ./"
+    "test:build": "vite build --base ./",
+    "release": "node scripts/release.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.111.0",
@@ -81,7 +82,9 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Kirukals",
-      "artifactName": "Kirukals-Setup-${version}.${ext}"
+      "artifactName": "Kirukals-Setup-${version}.${ext}",
+      "deleteAppDataOnUninstall": false,
+      "allowElevation": true
     },
     "protocols": [
       {
