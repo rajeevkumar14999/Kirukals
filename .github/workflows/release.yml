@@ -1,0 +1,86 @@
+# Building both, on the machines Apple and Microsoft require.
+#
+# A Mac build cannot be made on Windows: the tooling that produces an app
+# bundle and signs it only runs on macOS. So the Windows installer is built on
+# a Windows runner and the Mac disk images on a Mac one, and both land on the
+# same release.
+#
+# Push a tag to start it:
+#
+#     git tag v1.9.0 && git push origin v1.9.0
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build, e.g. 1.9.0'
+        required: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: --win
+          - os: macos-latest
+            target: --mac
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # The Google client details are not in the repository, and the app is
+      # built without them if they are not in the environment either — sign-in
+      # then falls back to email and password rather than failing to build.
+      - name: Write the build's configuration
+        shell: bash
+        run: |
+          cat > .env <<ENV
+          VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          KIRUKALS_GOOGLE_DESKTOP_CLIENT_ID=${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
+          KIRUKALS_GOOGLE_DESKTOP_CLIENT_SECRET=${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
+          VITE_SITE_URL=${{ secrets.SITE_URL }}
+          ENV
+
+      - run: node scripts/google-config.cjs
+      - run: npx vite build --base ./
+      - run: node scripts/protect.cjs
+
+      - name: Package
+        run: npx electron-builder ${{ matrix.target }} --publish never
+        env:
+          # Signing happens only if the certificates are in the repository's
+          # secrets. Without them the build still succeeds, unsigned — which
+          # runs, with a warning the person has to click past.
+          CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.zip
+            release/*.yml
+            release/*.blockmap
+          if-no-files-found: warn

@@ -22,7 +22,8 @@
     "test:perf": "electron test/perf.cjs",
     "test:smoke": "electron test/smoke.cjs",
     "test:build": "vite build --base ./",
-    "release": "node scripts/release.cjs"
+    "release": "node scripts/release.cjs",
+    "desktop:build:mac": "npm run build && electron-builder --mac"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.111.0",
@@ -93,6 +94,61 @@
           "kirukals"
         ]
       }
-    ]
+    ],
+    "icon": "build/icon.png",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "Kirukals",
+            "CFBundleURLSchemes": [
+              "kirukals"
+            ]
+          }
+        ],
+        "NSHumanReadableCopyright": "Kirukals"
+      }
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 140,
+          "y": 200,
+          "type": "file"
+        },
+        {
+          "x": 400,
+          "y": 200,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "window": {
+        "width": 540,
+        "height": 380
+      }
+    }
   }
 }

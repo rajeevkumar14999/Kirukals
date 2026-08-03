@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!--
+    What the hardened runtime has to be told to allow.
+
+    Electron needs both of these because Chromium compiles JavaScript as it
+    runs; without them the app launches to a blank window on any Mac since
+    Catalina. Nothing here grants access to files, the camera or the network
+    beyond what any app has.
+  -->
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+</dict>
+</plist>
