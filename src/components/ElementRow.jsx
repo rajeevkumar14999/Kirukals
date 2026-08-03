@@ -17,6 +17,9 @@ function ElementRow({
   onChange,
   onKeyDown,
   onFocus,
+  // Every way a caret moves without the line changing: clicked in, arrowed
+  // through, typed into. Undo needs where it was, not just which line.
+  onCaretMove,
   onClick,
 }) {
   const ref = useRef(null);

@@ -133,9 +133,19 @@ export default function Editor({
     focusAt(jump.id, jump.pos ?? 'end', 'center');
   }, [jump]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    onActiveChange?.(activeEl, active);
+  /**
+   * Tell whoever is listening which line the caret is on, and where in it.
+   *
+   * The offset matters as much as the line. Undo that returns to the right
+   * line but the start of it still loses the writer's place in a sentence,
+   * which is the thing worth fixing.
+   */
+  const reportCaret = useCallback(() => {
+    const node = activeEl && refs.current.get(activeEl.id);
+    onActiveChange?.(activeEl, active, node ? node.selectionStart : null);
   }, [activeEl, active, onActiveChange]);
+
+  useEffect(() => { reportCaret(); }, [reportCaret]);
 
   /* ---------------- document mutations ---------------- */
 

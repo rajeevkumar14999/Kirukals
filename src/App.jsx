@@ -839,6 +839,17 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
   /** Customize, opened straight onto the page that was asked for. */
   const openSettings = (page) => setSettingsPage(page);
 
+  /** Undo or redo, then go back to the line it happened on. */
+  const stepBack = useCallback(() => {
+    const where = undo();
+    if (where?.id) setJump({ ...where, at: Date.now() });
+  }, [undo]);
+
+  const stepForward = useCallback(() => {
+    const where = redo();
+    if (where?.id) setJump({ ...where, at: Date.now() });
+  }, [redo]);
+
   const menus = buildMenus({
     doc, session, prefs, setPrefs, active, pinned,
     canUndo, canRedo, undo: stepBack, redo: stepForward,
@@ -908,17 +919,6 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
     wasOpen.current = null;
     setJump({ id, pos: null, at: Date.now() });
   }, [dialog]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  /** Undo or redo, then go back to the line it happened on. */
-  const stepBack = useCallback(() => {
-    const where = undo();
-    if (where?.id) setJump({ ...where, at: Date.now() });
-  }, [undo]);
-
-  const stepForward = useCallback(() => {
-    const where = redo();
-    if (where?.id) setJump({ ...where, at: Date.now() });
-  }, [redo]);
 
   return (
     <div className={`app${prefs.focusMode ? ' app--focus' : ''}`}>
