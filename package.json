@@ -24,7 +24,8 @@
     "test:build": "vite build --base ./",
     "release": "node scripts/release.cjs",
     "desktop:build:mac": "npm run build && electron-builder --mac",
-    "icon": "electron scripts/make-ico.cjs"
+    "icon": "electron scripts/make-ico.cjs",
+    "test:formats": "node --import ./test/extensions.mjs test/formats.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.111.0",

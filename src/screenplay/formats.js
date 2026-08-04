@@ -19,7 +19,17 @@ export function toFountain(doc) {
   if (tp.contact) head.push(`Contact:\n    ${tp.contact.split('\n').join('\n    ')}`);
 
   const body = doc.elements.map((el) => {
-    const plain = TYPES[el.type].uppercase ? el.text.toUpperCase() : el.text;
+    /*
+      Written as it was typed.
+
+      The screen shouts a scene heading and a character cue because that is
+      how a script is read, but shouting is a way of displaying a line, not
+      part of it. Exporting the shouted version meant a script that went out
+      to Fountain and came back had different words in it — "CLOSE ON a
+      puddle" returning as "CLOSE ON A PUDDLE". A round trip must not edit
+      anybody's writing.
+    */
+    const plain = el.text;
     // Emphasis becomes Fountain markers only here, at the boundary.
     const text = toMarkers(plain, el.styles);
     switch (el.type) {
