@@ -57,9 +57,10 @@ import { applyPendingUpdate, dismissUpdate, onUpdateReady, updatePending } from 
 // Read once by the sign-in page to explain why a guest was thrown out.
 export const GUEST_EXPIRED_FLAG = 'kirukals.guestExpired';
 import { FindReplaceDialog, ShortcutsDialog, TitlePageDialog, WatermarkDialog } from './components/Dialogs';
+import { useSettled } from './hooks/useSettled';
 import { useScriptDoc } from './hooks/useScriptDoc';
 import { TYPES } from './screenplay/elements';
-import { collectVocabulary, computeStats } from './screenplay/paginate';
+import { collectVocabulary, computeStats, paginate } from './screenplay/paginate';
 import { importScriptFile } from './screenplay/import';
 import {
   download,
@@ -372,7 +373,35 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
 
   useEffect(() => onInstallable((p) => setCanInstall(Boolean(p))), []);
 
-  const stats = useMemo(() => computeStats(doc.elements), [doc.elements]);
+  /*
+    What the panels read.
+
+    Deferring alone was not enough: a low-priority render is still the same
+    thread, and at a hundred and twenty pages the scene list, the cast and
+    the locations were being rebuilt from six and a half thousand elements
+    behind every keystroke. Nobody reads a scene list while typing a word,
+    so it catches up a third of a second after the typing stops.
+  */
+  const quietDoc = useSettled(useDeferredValue(doc), 300);
+
+  /*
+    Two questions, asked at two speeds.
+
+    Where the pages break has to be current: it decides which sheet a line
+    is drawn on, and a stale answer makes a newly typed line jump. The
+    scene list, the cast and the word count are read by panels nobody is
+    looking at while they type, and walking every element to rebuild them
+    on each keystroke was most of what a long script cost.
+
+    So the layout is worked out live and the rest catches up when the
+    typing stops.
+  */
+  const layout = useMemo(() => paginate(doc.elements), [doc.elements]);
+  const settledStats = useMemo(() => computeStats(quietDoc.elements), [quietDoc.elements]);
+  const stats = useMemo(
+    () => ({ ...settledStats, pages: layout.pages, pageOf: layout.pageOf, pageCount: layout.pageCount }),
+    [settledStats, layout],
+  );
 
   /**
    * The panels read the script; nobody types into them.
@@ -384,7 +413,6 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
    * starts again, so a fast typist never pays for a list they are not looking
    * at.
    */
-  const quietDoc = useDeferredValue(doc);
   const vocab = useMemo(() => collectVocabulary(quietDoc.elements), [quietDoc.elements]);
   const commentCount = useMemo(
     () => doc.elements.reduce((n, el) => n + (el.comments?.length || 0), 0),

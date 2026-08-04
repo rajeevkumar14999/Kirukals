@@ -1,5 +1,20 @@
 /** What does one autosave of a long script cost? */
 const { app, BrowserWindow } = require('electron');
+
+/*
+  A profile of its own.
+
+  Every harness here seeds a script and then asks what the app did with it.
+  Sharing one Electron profile means each one opens whatever the last run
+  left behind — the smoke test was quietly checking a five-hundred-page
+  document from a performance run rather than its own forty-page fixture,
+  and passing anyway, which is worse than failing.
+*/
+const os = require('node:os');
+const fsx = require('node:fs');
+const pathx = require('node:path');
+app.setPath('userData', fsx.mkdtempSync(pathx.join(os.tmpdir(), 'kirukals-check-')));
+
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 

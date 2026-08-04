@@ -2,7 +2,7 @@
   "name": "kirukals",
   "productName": "Kirukals",
   "private": true,
-  "version": "1.9.5",
+  "version": "1.9.6",
   "description": "Write screenplays with industry-standard formatting, and plan the shoot from the same script.",
   "author": "Kirukals",
   "type": "module",
