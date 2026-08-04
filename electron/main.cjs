@@ -290,10 +290,12 @@ function createWindow() {
     win.loadURL(process.env.KIRUKALS_DEV_URL || 'http://localhost:5173');
   } else {
     win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
-
-  // Ask before closing on unwritten work.
-  guardWindow(win);
   }
+
+  // Ask before closing on unwritten work. Attached for both dev and the
+  // packaged app -- it lived inside the else above, so it was never on in
+  // development and could not be tried there.
+  guardWindow(win);
 
   return win;
 }
