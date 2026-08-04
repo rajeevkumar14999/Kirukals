@@ -1,8 +1,8 @@
-version: 1.9.9
+version: 1.10.0
 files:
-  - url: Kirukals-Setup-1.9.9.exe
-    sha512: +pj0IJzuJSS7MW93irH6aA9470fiOJqjiqsCEV2Ua/rJsy56gc4DZpnH3yNb+BIg6hBEtp8A2PCcGeVETvzDnw==
-    size: 101071866
-path: Kirukals-Setup-1.9.9.exe
-sha512: +pj0IJzuJSS7MW93irH6aA9470fiOJqjiqsCEV2Ua/rJsy56gc4DZpnH3yNb+BIg6hBEtp8A2PCcGeVETvzDnw==
-releaseDate: '2026-08-04T11:18:09.037Z'
+  - url: Kirukals-Setup-1.10.0.exe
+    sha512: FFgrjYVCfvYc5gadiJSZoFlyBk6JxOQmrMfYW8h8o012qCvRhtsFHrno9gDZ6bGkTPLf0fWVYqxURsKBnTIlNw==
+    size: 101074526
+path: Kirukals-Setup-1.10.0.exe
+sha512: FFgrjYVCfvYc5gadiJSZoFlyBk6JxOQmrMfYW8h8o012qCvRhtsFHrno9gDZ6bGkTPLf0fWVYqxURsKBnTIlNw==
+releaseDate: '2026-08-04T11:34:46.817Z'

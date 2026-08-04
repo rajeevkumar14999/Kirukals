@@ -65,6 +65,7 @@ import { collectVocabulary, computeStats, paginate } from './screenplay/paginate
 import { importScriptFile } from './screenplay/import';
 import {
   download,
+  printHtml,
   printScript,
   toFdx,
   toFountain,
@@ -659,12 +660,25 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
     }
   };
 
-  const exportAs = (kind) => {
-    const name = slug(doc.titlePage?.title || doc.name);
-    if (kind === 'fountain') download(`${name}.fountain`, toFountain(doc));
-    if (kind === 'fdx') download(`${name}.fdx`, toFdx(doc), 'application/xml');
-    if (kind === 'txt') download(`${name}.txt`, toPlainText(doc));
-    if (kind === 'json') download(`${name}.json`, JSON.stringify(doc, null, 2), 'application/json');
+  const exportAs = async (kind, filename) => {
+    const name = filename || slug(doc.titlePage?.title || doc.name);
+    if (kind === 'fountain') return download(`${name}.fountain`, toFountain(doc));
+    if (kind === 'fdx') return download(`${name}.fdx`, toFdx(doc), 'application/xml');
+    if (kind === 'txt') return download(`${name}.txt`, toPlainText(doc));
+    if (kind === 'json') return download(`${name}.json`, JSON.stringify(doc, null, 2), 'application/json');
+    if (kind === 'pdf') {
+      /*
+        On the desktop the pages are rendered to a PDF and saved like any
+        other file. In a browser there is no such thing, so the print
+        preview stands in -- the writer chooses "Save as PDF" there.
+      */
+      const files = typeof window !== 'undefined' && window.kirukals?.files;
+      if (!files?.pdf) { showPrint(); return { canceled: false }; }
+      const made = await files.pdf(printHtml(doc, prefs), prefs.paper);
+      if (!made?.ok) return { canceled: false, error: made?.error };
+      return files.save(`${name}.pdf`, { base64: made.base64 }, 'pdf');
+    }
+    return undefined;
   };
 
   /* ---------------- the menu ---------------- */
@@ -1248,7 +1262,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         <PrintPreview doc={doc} prefs={prefs} onClose={() => setDialog(null)} />
       )}
       {dialog === 'exportpick' && (
-        <ExportPickDialog onPick={exportAs} onPrint={() => showPrint()} onClose={() => setDialog(null)} />
+        <ExportPickDialog doc={doc} onPick={exportAs} onClose={() => setDialog(null)} />
       )}
       {dialog === 'wordcount' && (
         <WordCountDialog doc={doc} stats={stats} onClose={() => setDialog(null)} />

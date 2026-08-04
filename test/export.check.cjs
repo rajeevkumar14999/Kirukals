@@ -28,7 +28,26 @@ app.whenReady().then(async () => {
   })()`);
   console.log('  bridge said: ' + JSON.stringify(res));
   const wrote = fs.existsSync(out);
-  console.log((wrote ? '  ok   ' : '  FAIL ') + 'a file is written to disk');
+  console.log((wrote ? '  ok   ' : '  FAIL ') + 'a text export is written to disk');
   if (wrote) console.log('  ok   contents: ' + JSON.stringify(fs.readFileSync(out, 'utf8').slice(0, 40)));
-  app.exit(wrote ? 0 : 1);
+
+  /* And a PDF, which is made in the main process rather than by a printer. */
+  const pdfOut = path.join(os.tmpdir(), 'kirukals-export-check.pdf');
+  try { fs.unlinkSync(pdfOut); } catch {}
+  dialog.showSaveDialog = async () => ({ canceled: false, filePath: pdfOut });
+
+  const made = await win.webContents.executeJavaScript(`(async () => {
+    try {
+      const html = '<html><body><div class="sheet">INT. A ROOM - NIGHT</div></body></html>';
+      const pdf = await window.kirukals.files.pdf(html, 'letter');
+      if (!pdf.ok) return pdf;
+      return await window.kirukals.files.save('check.pdf', { base64: pdf.base64 }, 'pdf');
+    } catch (e) { return { ok: false, error: String(e && e.message || e) }; }
+  })()`);
+  console.log('  pdf said: ' + JSON.stringify(made));
+  const gotPdf = fs.existsSync(pdfOut) && fs.readFileSync(pdfOut).slice(0, 4).toString() === '%PDF';
+  console.log((gotPdf ? '  ok   ' : '  FAIL ') + 'a real PDF is written to disk'
+    + (fs.existsSync(pdfOut) ? ` (${(fs.statSync(pdfOut).size / 1024).toFixed(0)}KB)` : ''));
+
+  app.exit(wrote && gotPdf ? 0 : 1);
 });

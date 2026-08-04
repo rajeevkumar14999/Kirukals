@@ -323,6 +323,41 @@ if (!app.requestSingleInstanceLock()) {
     }
   });
 
+  /**
+   * A PDF, as a file rather than a trip through the printer.
+   *
+   * Exporting a PDF used to mean opening the print dialog and asking the
+   * writer to find "Save as PDF" in a printer list and set the margins to
+   * None. That is a lot to ask for the format a script is most often sent in.
+   * The page is rendered offscreen here and printed straight to a file, so
+   * export gives back a PDF the same way it gives back a Fountain file.
+   */
+  ipcMain.handle('export:pdf', async (event, { html, paper }) => {
+    const sheet = new BrowserWindow({
+      show: false,
+      webPreferences: { offscreen: true, javascript: false },
+    });
+    try {
+      await sheet.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+      // Fonts and page breaks need a moment to settle, or the first sheet
+      // comes out measured in whatever was on screen a frame earlier.
+      await new Promise((r) => setTimeout(r, 400));
+      const pdf = await sheet.webContents.printToPDF({
+        pageSize: paper === 'a4' ? 'A4' : 'Letter',
+        // The margins are already in the page itself — the 1.5in binding edge
+        // a script is required to have. Letting the printer add its own on top
+        // would push every line half an inch inwards.
+        margins: { marginType: 'none' },
+        printBackground: true,
+      });
+      return { ok: true, base64: pdf.toString('base64') };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    } finally {
+      sheet.destroy();
+    }
+  });
+
   // "Show me where it went" — the file, selected, in Explorer or Finder.
   ipcMain.handle('export:reveal', (_event, filePath) => {
     shell.showItemInFolder(filePath);
