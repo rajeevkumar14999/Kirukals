@@ -232,6 +232,14 @@ function rankEntry(name) {
   if (n.endsWith('.fdx')) return 100;
   if (n.endsWith('.fountain') || n.endsWith('.spmd')) return 90;
   if (n.endsWith('.fdr')) return 80;
+  /*
+    Celtx keeps the screenplay as HTML inside the bundle, named script-<id>.html
+    beside a scratch file and two RDF catalogues. It was scoring zero here — an
+    extension nobody had ranked — so a .celtx opened to "no screenplay found"
+    while the file it wanted was sitting right there in the listing.
+  */
+  if (/(^|\/)script[^/]*\.x?html?$/.test(n)) return 85;
+  if (/(^|\/)scratch[^/]*\.x?html?$/.test(n)) return 30; // notes, not the script
   // Bundles from other apps keep the script under a predictable name.
   if (/(document|script|screenplay|content|main)\.(xml|json|txt)$/.test(n)) return 75;
   if (n.endsWith('.xml')) return 70;
@@ -363,6 +371,84 @@ function fromGenericXml(text) {
  * Dispatch
  * ------------------------------------------------------------------ */
 
+/**
+ * Celtx, which writes a screenplay as HTML.
+ *
+ * Every line is a paragraph carrying Celtx's own class — sceneheading, action,
+ * character, dialog, parenthetical, transition, shot — so the element types
+ * come across exactly rather than being guessed from the shape of the text.
+ * That mapping is the whole job; the rest is unpicking entities and throwing
+ * away the wrapper markup Celtx puts around each line.
+ */
+function fromCeltxHtml(html, notes) {
+  const TYPE = {
+    sceneheading: 'scene_heading',
+    'scene-heading': 'scene_heading',
+    slug: 'scene_heading',
+    action: 'action',
+    character: 'character',
+    dialog: 'dialogue',
+    dialogue: 'dialogue',
+    parenthetical: 'parenthetical',
+    paren: 'parenthetical',
+    transition: 'transition',
+    shot: 'shot',
+    act: 'scene_heading',
+  };
+
+  const strip = (s) =>
+    s
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;|&apos;/gi, "'")
+      .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
+      .replace(/[ \t]+/g, ' ')
+      .trim();
+
+  const elements = [];
+  let unknown = 0;
+  // Celtx wraps each line in <p class="..."> — sometimes with the class on an
+  // inner <span>, so both are looked at before giving up on a line.
+  const paragraphs = html.match(/<p\b[^>]*>[\s\S]*?<\/p>/gi) || [];
+
+  for (const p of paragraphs) {
+    const classes = (p.match(/class\s*=\s*["']([^"']+)["']/i)?.[1] || '').toLowerCase().split(/\s+/);
+    const key = classes.find((c) => TYPE[c]);
+    const text = strip(p);
+    if (!text) continue;
+    if (!key) unknown++;
+    elements.push({
+      id: `e${Math.random().toString(36).slice(2, 10)}`,
+      // A line whose class Celtx did not write is far more often action than
+      // anything else, so an unrecognised paragraph lands there rather than
+      // being dropped — no words are lost, at worst a type needs correcting.
+      type: key ? TYPE[key] : 'action',
+      text,
+      styles: [],
+      comments: [],
+    });
+  }
+
+  if (!elements.length) {
+    throw new Error('that Celtx script has no screenplay paragraphs in it');
+  }
+  if (unknown) {
+    notes.push(`${unknown} line${unknown === 1 ? '' : 's'} carried no Celtx element type and came in as action.`);
+  }
+
+  const title = strip(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || '');
+  return {
+    name: title || 'Imported script',
+    titlePage: title ? { title } : {},
+    elements,
+  };
+}
+
 async function parseBytes(bytes, filename, notes) {
   const ext = (filename.match(/\.([^.]+)$/)?.[1] || '').toLowerCase();
 
@@ -374,6 +460,12 @@ async function parseBytes(bytes, filename, notes) {
     const inner = new Uint8Array(await new Response(stream).arrayBuffer());
     notes.push('Unpacked a gzipped file.');
     return parseBytes(inner, filename.replace(/\.(gz|wdz)$/i, ''), notes);
+  }
+
+  // Celtx, and anything else that stores a script as HTML.
+  const opening = decodeText(bytes.subarray(0, 400)).toLowerCase();
+  if (/\.x?html?$/.test(ext) || opening.includes('<html') || opening.includes('<!doctype html')) {
+    return fromCeltxHtml(decodeText(bytes), notes);
   }
 
   // JSON is detected by content, not extension — a bundle may hand us one
