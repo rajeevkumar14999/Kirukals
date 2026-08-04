@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import TrashIcon from './TrashIcon';
 import Attachment from './Attachment';
 import SheetRow from './SheetRow';
 import {
@@ -205,7 +206,7 @@ export default function ShotSheet({ doc, stats, board, onChange, onJump, onNotic
                                       }}
                                     />
                                   </label>
-                                  <button className="linkish" title="Remove this reference" onClick={() => setShot(scene.id, shot.id, { ref: null })}>✕</button>
+                                  <button className="linkish" title="Remove this reference" onClick={() => setShot(scene.id, shot.id, { ref: null })}><TrashIcon /></button>
                                 </span>
                               </>
                             ) : (
@@ -295,7 +296,7 @@ export default function ShotSheet({ doc, stats, board, onChange, onJump, onNotic
                               title="Remove this shot"
                               onClick={() => write(scene.id, list.filter((s) => s.id !== shot.id))}
                             >
-                              ✕
+                              <TrashIcon />
                             </button>
                           </div>
                         </li>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import TrashIcon from './TrashIcon';
 import { IMPORT_ACCEPT } from '../screenplay/import';
 import { TYPES } from '../screenplay/elements';
 import { extractCast, extractLocations } from '../screenplay/preproduction';
@@ -188,7 +189,7 @@ export default function Sidebar({
                     title="Delete this document"
                     onClick={() => onDeleteDocument(d.id)}
                   >
-                    ✕
+                    <TrashIcon />
                   </button>
                 </li>
               ))}
@@ -331,7 +332,7 @@ export default function Sidebar({
                       <span className="tag tag--muted">{TYPES[g.type]?.short || '?'}</span>
                       {g.text.slice(0, 48) || '(empty line)'}
                     </button>
-                    <button className="linkish" onClick={() => onBury(g.buriedId)} title="Forget it for good">✕</button>
+                    <button className="linkish" onClick={() => onBury(g.buriedId)} title="Forget it for good"><TrashIcon /></button>
                   </li>
                 ))}
               </ul>

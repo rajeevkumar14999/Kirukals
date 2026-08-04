@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import TrashIcon from './TrashIcon';
 
 const fmtWhen = (ts) => {
   const diff = Date.now() - ts;
@@ -61,7 +62,7 @@ export default function CommentThread({ comments = [], author, style, onAdd, onD
                   aria-label="Delete this comment"
                   title="Delete"
                 >
-                  ✕
+                  <TrashIcon />
                 </button>
               </div>
               <p>{c.body}</p>

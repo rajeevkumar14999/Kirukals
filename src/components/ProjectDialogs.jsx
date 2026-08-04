@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import TrashIcon from './TrashIcon';
 import { Modal } from './Dialogs';
 import { IMPORT_ACCEPT } from '../screenplay/import';
 import { canPickFolder, forgetFolder, pickFolder } from '../screenplay/backup';
@@ -49,7 +50,7 @@ export function PortfolioDialog({ index, currentId, onOpen, onDelete, onNew, onI
               </span>
             </button>
             {f.id !== currentId && (
-              <button className="linkish" title="Delete this script" onClick={() => onDelete(f.id)}>✕</button>
+              <button className="linkish" title="Delete this script" onClick={() => onDelete(f.id)}><TrashIcon /></button>
             )}
           </li>
         ))}

@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState } from 'react';
+import TrashIcon from './TrashIcon';
 import {
   CATEGORIES,
   CATEGORY_LABEL,
@@ -264,7 +265,7 @@ export default function BudgetSheet({ doc, stats, board, onChange }) {
                                     title="Remove this line"
                                     onClick={() => setItems(budget.items.filter((i) => i.id !== item.id))}
                                   >
-                                    ✕
+                                    <TrashIcon />
                                   </button>
                                 </td>
                               </tr>
