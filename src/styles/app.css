@@ -1048,3 +1048,12 @@ kbd {
   border-top: 1px solid var(--line);
 }
 .settings__reset i { color: var(--text-dim); font-style: normal; font-size: 12px; }
+
+/* The rest of a long script's scenes, on request. */
+.scene-list__more {
+  display: block; width: 100%;
+  margin-top: 6px; padding: 8px;
+  background: none; border: 1px dashed var(--line); border-radius: 8px;
+  color: var(--text-dim); font: inherit; font-size: 12.5px; cursor: pointer;
+}
+.scene-list__more:hover { border-color: var(--accent); color: var(--text); }
