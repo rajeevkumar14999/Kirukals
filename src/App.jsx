@@ -19,6 +19,7 @@ import {
 } from './components/ProjectDialogs';
 import { backupDoc, onBackupState, state as backupState } from './screenplay/backup';
 import MenuPanel from './components/MenuPanel';
+import PrintPreview from './components/PrintPreview';
 import {
   AlternatesDialog,
   FormattingDialog,
@@ -244,6 +245,10 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
   const [index, setIndex] = useState(() => loadIndex());
   const [savedAt, setSavedAt] = useState(null);
   const [dialog, setDialog] = useState(null); // 'title' | 'find' | 'shortcuts'
+
+  // Printing shows the pages first. Every route to the printer goes through
+  // here so there is one answer to "what will come out", not several.
+  const showPrint = () => setDialog('print-preview');
   const [settingsPage, setSettingsPage] = useState(null); // which Customize page
   const [jump, setJump] = useState(null);
   // Bumped by the toolbar's Comment button; the editor knows which line is live.
@@ -774,7 +779,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
     },
 
     { group: true, label: 'Share' },
-    { id: 'm-print', label: 'Print / Save as PDF', shortcut: 'Ctrl+P', run: () => printScript(doc, prefs) },
+    { id: 'm-print', label: 'Print / Save as PDF', shortcut: 'Ctrl+P', run: () => showPrint() },
     { id: 'm-fountain', label: 'Export Fountain (.fountain)', run: () => exportAs('fountain') },
     { id: 'm-fdx', label: 'Export Final Draft (.fdx)', run: () => exportAs('fdx') },
     { id: 'm-txt', label: 'Export plain text (.txt)', run: () => exportAs('txt') },
@@ -910,7 +915,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         setDialog('find');
       } else if (k === 'p') {
         e.preventDefault();
-        printScript(doc, prefs);
+        showPrint();
       } else if (k === 's') {
         e.preventDefault();
         flushSave(doc);
@@ -964,7 +969,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         prefs={prefs}
         setPrefs={setPrefs}
         onExport={exportAs}
-        onPrint={() => printScript(doc, prefs)}
+        onPrint={() => showPrint()}
         onTitlePage={() => setDialog('title')}
         onFind={() => setDialog('find')}
         onComment={() => setCommentTick((n) => n + 1)}
@@ -1071,7 +1076,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
           owner={session.name}
           backup={backup}
           onCommand={(id) => {
-            if (id === 'print') return printScript(doc, prefs);
+            if (id === 'print') return showPrint();
             if (id === 'export') return setDialog('exportpick');
             if (id === 'analyse') return setDocView('analysis');
             return setDialog(id);
@@ -1098,7 +1103,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
             <AnalysisReport
               doc={doc}
               stats={stats}
-              onCommand={(id) => (id === 'print' ? printScript(doc, prefs) : setDialog(id))}
+              onCommand={(id) => (id === 'print' ? showPrint() : setDialog(id))}
             />
           ) : String(docView).startsWith('pp:') ? (
             <Preproduction
@@ -1239,8 +1244,11 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
       {dialog === 'newdoc' && (
         <NewDocumentDialog onCreate={addDocument} onClose={() => setDialog(null)} />
       )}
+      {dialog === 'print-preview' && (
+        <PrintPreview doc={doc} prefs={prefs} onClose={() => setDialog(null)} />
+      )}
       {dialog === 'exportpick' && (
-        <ExportPickDialog onPick={exportAs} onPrint={() => printScript(doc, prefs)} onClose={() => setDialog(null)} />
+        <ExportPickDialog onPick={exportAs} onPrint={() => showPrint()} onClose={() => setDialog(null)} />
       )}
       {dialog === 'wordcount' && (
         <WordCountDialog doc={doc} stats={stats} onClose={() => setDialog(null)} />

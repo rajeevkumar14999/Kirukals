@@ -251,12 +251,22 @@ export function toPlainText(doc) {
  * Print / PDF — a print window styled with real page geometry
  * ------------------------------------------------------------------ */
 
-export function printScript(doc, opts) {
+/**
+ * The printed script, as a page.
+ *
+ * Separated from printing it so the layout can be looked at without a
+ * printer — the margins, the folios and the indents are the whole of what
+ * makes a PDF worth sending to a producer, and none of them can be checked
+ * through a print dialog.
+ */
+export function printHtml(doc, opts) {
   const cfg = { ...PRINT_DEFAULTS, ...opts };
   const paper = PAPER[cfg.paper] || PAPER.letter;
   const tp = cfg.pdfTitlePage === false ? {} : doc.titlePage || {};
   // The print window is served from about:blank, so font URLs must be absolute.
-  const origin = window.location.origin;
+  // Outside a browser there is no origin and none is needed: the page is
+  // being measured rather than shown, and Courier falls back to Courier.
+  const origin = typeof window === 'undefined' ? '' : window.location.origin;
 
   // Which scene each heading is, counted through the whole script, so the
   // numbers survive whatever the page breaks do.
@@ -461,6 +471,12 @@ ${sheets}
 <script>window.onload = function () { window.focus(); window.print(); };<\/script>
 </body></html>`;
 
+  return html;
+}
+
+/** Build the page and hand it to the printer. */
+export function printScript(doc, opts) {
+  const html = printHtml(doc, opts);
   const w = window.open('', '_blank');
   if (!w) {
     alert('Your browser blocked the print window. Allow pop-ups for this site and try again.');

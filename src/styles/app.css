@@ -1057,3 +1057,21 @@ kbd {
   color: var(--text-dim); font: inherit; font-size: 12.5px; cursor: pointer;
 }
 .scene-list__more:hover { border-color: var(--accent); color: var(--text); }
+
+/* Print preview — the pages, at a size worth judging. */
+.preview__bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 10px;
+}
+.preview__zoom { display: flex; align-items: center; gap: 8px; }
+.preview__zoom button {
+  width: 26px; height: 26px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+}
+.preview__zoom b { font-size: 12px; min-width: 42px; text-align: center; }
+.preview__paper {
+  position: relative; overflow: auto; height: min(62vh, 620px);
+  background: var(--sunken, #6b7280); border: 1px solid var(--line);
+  border-radius: 8px; padding: 14px;
+}
+.preview__paper iframe { border: 0; display: block; background: transparent; }
