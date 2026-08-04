@@ -487,6 +487,18 @@ export function printScript(doc, opts) {
 }
 
 export function download(filename, text, mime = 'text/plain') {
+  /*
+    In the desktop app, ask the operating system.
+
+    The blob-and-hidden-link below is how the web saves a file, and inside a
+    packaged application it fails without saying so — the click goes nowhere.
+    Worse, even where it works the writer never gets to choose the folder. So
+    when the desktop bridge is there, a real save dialog opens: pick the place,
+    pick the name, the file is written. The web keeps the link.
+  */
+  const bridge = typeof window !== 'undefined' && window.kirukals?.files;
+  if (bridge) return bridge.save(filename, text, mime);
+
   const blob = new Blob([text], { type: `${mime};charset=utf-8` });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

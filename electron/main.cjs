@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, Menu, ipcMain, dialog } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { autoUpdater } = require('electron-updater');
@@ -274,6 +274,59 @@ if (!app.requestSingleInstanceLock()) {
   // The renderer asks; the main process does. Nothing updates behind anyone's
   // back — a download starts only when someone presses the button.
   ipcMain.handle('app:version', () => app.getVersion());
+
+  /**
+   * Exporting, the way a desktop application does it.
+   *
+   * On the web an export is a blob and a hidden link, and the browser drops
+   * the file into Downloads. In a packaged app that same trick fails silently
+   * — there is no browser to catch the click — which is why export appeared to
+   * do nothing. So the desktop asks the operating system for a save dialog,
+   * the writer picks the folder and the name, and the file is written by the
+   * main process. That is what Final Draft does, and it is what people expect:
+   * they choose where their script goes.
+   */
+  ipcMain.handle('export:save', async (event, { filename, text, kind }) => {
+    const owner = BrowserWindow.fromWebContents(event.sender);
+    const ext = String(filename || '').split('.').pop().toLowerCase();
+    const names = {
+      fountain: 'Fountain screenplay',
+      fdx: 'Final Draft document',
+      txt: 'Plain text',
+      json: 'Kirukals backup',
+      pdf: 'PDF document',
+    };
+    const filters = [
+      { name: names[ext] || names[kind] || 'File', extensions: [ext || 'txt'] },
+      { name: 'All files', extensions: ['*'] },
+    ];
+
+    const { canceled, filePath } = await dialog.showSaveDialog(owner, {
+      title: 'Export script',
+      defaultPath: path.join(app.getPath('documents'), filename),
+      filters,
+      // Losing a draft to a mistyped name that matched an old file is the kind
+      // of thing a writer never forgives, so the overwrite warning stays.
+      properties: ['createDirectory', 'showOverwriteConfirmation'],
+    });
+
+    if (canceled || !filePath) return { ok: false, canceled: true };
+
+    try {
+      // Base64 is how binary (a PDF) survives the trip across IPC; text comes
+      // through as itself so a script is never mangled by an encoding round.
+      const data = typeof text === 'string' ? Buffer.from(text, 'utf8') : Buffer.from(text.base64, 'base64');
+      fs.writeFileSync(filePath, data);
+      return { ok: true, path: filePath };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  // "Show me where it went" — the file, selected, in Explorer or Finder.
+  ipcMain.handle('export:reveal', (_event, filePath) => {
+    shell.showItemInFolder(filePath);
+  });
 
   // Open the sign-in page in the person's real browser, where they are
   // probably already signed in to Google.
