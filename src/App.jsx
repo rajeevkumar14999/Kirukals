@@ -565,12 +565,42 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
 
   /* ---------------- persistence ---------------- */
 
+  /*
+    What the window asks before it closes.
+
+    The app autosaves, so most of the time there is nothing to lose and the
+    window should simply close -- being asked "save?" when everything is
+    already saved teaches people to dismiss the question without reading it,
+    which is how the one that mattered gets dismissed too. So a flag is kept
+    here: set the moment the script changes, cleared the moment it is written.
+    The desktop reads it on close and only interrupts when there really is
+    unwritten work.
+  */
+  const unsaved = useRef(false);
+
+
   // Autosave must never take the app down with it. A full browser store is a
   // condition to report, not an exception to throw during a keystroke.
+  // The document changed; until it is written, the window must say so.
+  useEffect(() => { unsaved.current = true; }, [doc]);
+
+  /*
+    The desktop shell asks these two questions on its way out: is there
+    anything unwritten, and if so please write it. Kept on the window because
+    the main process can only reach the page by evaluating script in it.
+  */
+  useEffect(() => {
+    window.__kirukalsUnsaved = () => unsaved.current === true;
+    window.__kirukalsSave = () => { flushSaveRef.current?.(); return true; };
+  }, []);
+  const flushSaveRef = useRef(null);
+
+
   const flushSave = useCallback(
     (d) => {
       try {
         const stamped = saveDoc(d);
+        unsaved.current = false;
         setSavedAt(stamped.updatedAt);
         setIndex(loadIndex());
         setStorageFull(null);
@@ -680,6 +710,9 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
     }
     return undefined;
   };
+
+  // Kept current so the close handler saves the document as it stands now.
+  flushSaveRef.current = () => flushSave(doc);
 
   /* ---------------- the menu ---------------- */
 

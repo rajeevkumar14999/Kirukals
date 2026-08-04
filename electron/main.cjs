@@ -155,6 +155,52 @@ function closeSplash() {
   splash = null;
 }
 
+function guardWindow(win) {
+  let letGo = false;
+  win.on('close', (event) => {
+    if (letGo) return;
+    event.preventDefault();
+    (async () => {
+      let dirty = false;
+      try {
+        dirty = await win.webContents.executeJavaScript(
+          'typeof window.__kirukalsUnsaved === "function" ? window.__kirukalsUnsaved() : false',
+        );
+      } catch {
+        // A page that cannot answer is not a reason to trap someone in it.
+        dirty = false;
+      }
+
+      if (dirty) {
+        const { response } = await dialog.showMessageBox(win, {
+          type: 'warning',
+          buttons: ['Save and close', "Don't save", 'Cancel'],
+          defaultId: 0,
+          cancelId: 2,
+          noLink: true,
+          message: 'Save your script before closing?',
+          detail: 'This script has changes that have not been written yet.',
+        });
+        if (response === 2) return; // stay open
+        if (response === 0) {
+          try {
+            await win.webContents.executeJavaScript(
+              'typeof window.__kirukalsSave === "function" ? window.__kirukalsSave() : false',
+            );
+            // Give the write a moment to reach the disk before the page dies.
+            await new Promise((r) => setTimeout(r, 250));
+          } catch {
+            /* if it cannot be saved, closing anyway is what they chose */
+          }
+        }
+      }
+
+      letGo = true;
+      win.close();
+    })();
+  });
+}
+
 function createWindow() {
   const state = readState();
 
@@ -244,6 +290,9 @@ function createWindow() {
     win.loadURL(process.env.KIRUKALS_DEV_URL || 'http://localhost:5173');
   } else {
     win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+
+  // Ask before closing on unwritten work.
+  guardWindow(win);
   }
 
   return win;
@@ -274,6 +323,18 @@ if (!app.requestSingleInstanceLock()) {
   // The renderer asks; the main process does. Nothing updates behind anyone's
   // back — a download starts only when someone presses the button.
   ipcMain.handle('app:version', () => app.getVersion());
+
+  /**
+   * Closing the window on unwritten work.
+   *
+   * The app autosaves, so nearly every close has nothing to lose and goes
+   * straight through — a dialog that appears when there is nothing to save
+   * only teaches people to dismiss it unread, and then the one that mattered
+   * gets dismissed too. When there genuinely is unwritten work the writer is
+   * given the three answers this question always has: save and go, discard and
+   * go, or stay. Cancel is the default, because a window closed by accident
+   * should cost nothing.
+   */
 
   /**
    * Exporting, the way a desktop application does it.
