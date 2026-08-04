@@ -220,6 +220,7 @@ function createWindow() {
       // everything it needs is in the browser APIs it already uses.
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
       spellcheck: true,
       preload: path.join(__dirname, 'preload.cjs'),
       // A shipped copy has no developer tools. This is not real protection —
