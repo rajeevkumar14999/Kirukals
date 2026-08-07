@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal } from './Dialogs';
-import { PLAN } from '../billing/subscription';
+import { plansNow } from '../billing/plans';
+import { usePlans } from '../hooks/usePlans';
 import { refreshLicence } from '../billing/licence';
 import { formatInr } from '../billing/upi';
 import '../styles/billing.css';
@@ -23,7 +24,11 @@ import '../styles/billing.css';
 const SITE = (import.meta.env.VITE_SITE_URL || 'https://milliondollarscriptsuite.com').replace(/\/$/, '');
 const BUY = `${SITE}/account`;
 
-export default function SubscribeDialog({ session, onClose, onChanged, blocking, onSignOut, plan = PLAN }) {
+export default function SubscribeDialog({ session, onClose, onChanged, blocking, onSignOut, plan: given = null }) {
+  /* Whatever was passed in wins — App hands this the production plan — and
+     otherwise it is whatever the website currently says a month costs. */
+  const live = usePlans();
+  const plan = given || live.plan || plansNow().plan;
   const [opened, setOpened] = useState(false);
   const [checking, setChecking] = useState(false);
   const [note, setNote] = useState('');
