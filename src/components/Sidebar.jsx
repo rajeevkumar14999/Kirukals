@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import TrashIcon from './TrashIcon';
 import { IMPORT_ACCEPT } from '../screenplay/import';
 import { TYPES } from '../screenplay/elements';
 import { extractCast, extractLocations } from '../screenplay/preproduction';
@@ -60,6 +61,20 @@ export default function Sidebar({
   onBury,
 }) {
   const [filter, setFilter] = useState('');
+
+  /*
+    How many scenes are drawn at once.
+
+    A feature has ninety; a two-hundred-and-forty-page script has fifteen
+    hundred, and rebuilding fifteen hundred rows every time the panel
+    catches up was a third of what a keystroke cost on a long script.
+
+    So the list shows a window of them and grows when somebody scrolls to
+    the bottom. Nobody reads scene nine hundred by scrolling past the
+    first eight hundred and ninety-nine — they use the filter above.
+  */
+  const SCENE_WINDOW = 120;
+  const [sceneLimit, setSceneLimit] = useState(SCENE_WINDOW);
 
   const scenes = stats.scenes.filter((s) =>
     !filter || s.text.toLowerCase().includes(filter.toLowerCase()),
@@ -174,7 +189,7 @@ export default function Sidebar({
                     title="Delete this document"
                     onClick={() => onDeleteDocument(d.id)}
                   >
-                    ✕
+                    <TrashIcon />
                   </button>
                 </li>
               ))}
@@ -268,7 +283,7 @@ export default function Sidebar({
             />
             {scenes.length === 0 && <p className="empty">No scene headings yet.</p>}
             <ol className="scene-list">
-              {scenes.map((s, i) => (
+              {scenes.slice(0, sceneLimit).map((s, i) => (
                 <li key={s.id}>
                   <button className="scene-list__item" onClick={() => onJump(s.id)}>
                     <span className="scene-list__no">{i + 1}</span>
@@ -282,6 +297,12 @@ export default function Sidebar({
                 </li>
               ))}
             </ol>
+            {scenes.length > sceneLimit && (
+              <button className="scene-list__more" onClick={() => setSceneLimit((n) => n + 240)}>
+                Show more — {scenes.length - sceneLimit} further scene
+                {scenes.length - sceneLimit === 1 ? '' : 's'}
+              </button>
+            )}
 
             <h3 className="sidebar__sub">Pins</h3>
             {pins.length === 0 ? (
@@ -311,7 +332,7 @@ export default function Sidebar({
                       <span className="tag tag--muted">{TYPES[g.type]?.short || '?'}</span>
                       {g.text.slice(0, 48) || '(empty line)'}
                     </button>
-                    <button className="linkish" onClick={() => onBury(g.buriedId)} title="Forget it for good">✕</button>
+                    <button className="linkish" onClick={() => onBury(g.buriedId)} title="Forget it for good"><TrashIcon /></button>
                   </li>
                 ))}
               </ul>

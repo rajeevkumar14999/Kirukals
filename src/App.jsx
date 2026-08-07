@@ -19,6 +19,7 @@ import {
 } from './components/ProjectDialogs';
 import { backupDoc, onBackupState, state as backupState } from './screenplay/backup';
 import MenuPanel from './components/MenuPanel';
+import PrintPreview from './components/PrintPreview';
 import {
   AlternatesDialog,
   FormattingDialog,
@@ -57,12 +58,14 @@ import { applyPendingUpdate, dismissUpdate, onUpdateReady, updatePending } from 
 // Read once by the sign-in page to explain why a guest was thrown out.
 export const GUEST_EXPIRED_FLAG = 'kirukals.guestExpired';
 import { FindReplaceDialog, ShortcutsDialog, TitlePageDialog, WatermarkDialog } from './components/Dialogs';
+import { useSettled } from './hooks/useSettled';
 import { useScriptDoc } from './hooks/useScriptDoc';
 import { TYPES } from './screenplay/elements';
-import { collectVocabulary, computeStats } from './screenplay/paginate';
+import { collectVocabulary, computeStats, paginate } from './screenplay/paginate';
 import { importScriptFile } from './screenplay/import';
 import {
   download,
+  printHtml,
   printScript,
   toFdx,
   toFountain,
@@ -243,6 +246,10 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
   const [index, setIndex] = useState(() => loadIndex());
   const [savedAt, setSavedAt] = useState(null);
   const [dialog, setDialog] = useState(null); // 'title' | 'find' | 'shortcuts'
+
+  // Printing shows the pages first. Every route to the printer goes through
+  // here so there is one answer to "what will come out", not several.
+  const showPrint = () => setDialog('print-preview');
   const [settingsPage, setSettingsPage] = useState(null); // which Customize page
   const [jump, setJump] = useState(null);
   // Bumped by the toolbar's Comment button; the editor knows which line is live.
@@ -372,7 +379,35 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
 
   useEffect(() => onInstallable((p) => setCanInstall(Boolean(p))), []);
 
-  const stats = useMemo(() => computeStats(doc.elements), [doc.elements]);
+  /*
+    What the panels read.
+
+    Deferring alone was not enough: a low-priority render is still the same
+    thread, and at a hundred and twenty pages the scene list, the cast and
+    the locations were being rebuilt from six and a half thousand elements
+    behind every keystroke. Nobody reads a scene list while typing a word,
+    so it catches up a third of a second after the typing stops.
+  */
+  const quietDoc = useSettled(useDeferredValue(doc), 300);
+
+  /*
+    Two questions, asked at two speeds.
+
+    Where the pages break has to be current: it decides which sheet a line
+    is drawn on, and a stale answer makes a newly typed line jump. The
+    scene list, the cast and the word count are read by panels nobody is
+    looking at while they type, and walking every element to rebuild them
+    on each keystroke was most of what a long script cost.
+
+    So the layout is worked out live and the rest catches up when the
+    typing stops.
+  */
+  const layout = useMemo(() => paginate(doc.elements), [doc.elements]);
+  const settledStats = useMemo(() => computeStats(quietDoc.elements), [quietDoc.elements]);
+  const stats = useMemo(
+    () => ({ ...settledStats, pages: layout.pages, pageOf: layout.pageOf, pageCount: layout.pageCount }),
+    [settledStats, layout],
+  );
 
   /**
    * The panels read the script; nobody types into them.
@@ -384,7 +419,6 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
    * starts again, so a fast typist never pays for a list they are not looking
    * at.
    */
-  const quietDoc = useDeferredValue(doc);
   const vocab = useMemo(() => collectVocabulary(quietDoc.elements), [quietDoc.elements]);
   const commentCount = useMemo(
     () => doc.elements.reduce((n, el) => n + (el.comments?.length || 0), 0),
@@ -531,12 +565,42 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
 
   /* ---------------- persistence ---------------- */
 
+  /*
+    What the window asks before it closes.
+
+    The app autosaves, so most of the time there is nothing to lose and the
+    window should simply close -- being asked "save?" when everything is
+    already saved teaches people to dismiss the question without reading it,
+    which is how the one that mattered gets dismissed too. So a flag is kept
+    here: set the moment the script changes, cleared the moment it is written.
+    The desktop reads it on close and only interrupts when there really is
+    unwritten work.
+  */
+  const unsaved = useRef(false);
+
+
   // Autosave must never take the app down with it. A full browser store is a
   // condition to report, not an exception to throw during a keystroke.
+  // The document changed; until it is written, the window must say so.
+  useEffect(() => { unsaved.current = true; }, [doc]);
+
+  /*
+    The desktop shell asks these two questions on its way out: is there
+    anything unwritten, and if so please write it. Kept on the window because
+    the main process can only reach the page by evaluating script in it.
+  */
+  useEffect(() => {
+    window.__kirukalsUnsaved = () => unsaved.current === true;
+    window.__kirukalsSave = () => { flushSaveRef.current?.(); return true; };
+  }, []);
+  const flushSaveRef = useRef(null);
+
+
   const flushSave = useCallback(
     (d) => {
       try {
         const stamped = saveDoc(d);
+        unsaved.current = false;
         setSavedAt(stamped.updatedAt);
         setIndex(loadIndex());
         setStorageFull(null);
@@ -626,13 +690,29 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
     }
   };
 
-  const exportAs = (kind) => {
-    const name = slug(doc.titlePage?.title || doc.name);
-    if (kind === 'fountain') download(`${name}.fountain`, toFountain(doc));
-    if (kind === 'fdx') download(`${name}.fdx`, toFdx(doc), 'application/xml');
-    if (kind === 'txt') download(`${name}.txt`, toPlainText(doc));
-    if (kind === 'json') download(`${name}.json`, JSON.stringify(doc, null, 2), 'application/json');
+  const exportAs = async (kind, filename) => {
+    const name = filename || slug(doc.titlePage?.title || doc.name);
+    if (kind === 'fountain') return download(`${name}.fountain`, toFountain(doc));
+    if (kind === 'fdx') return download(`${name}.fdx`, toFdx(doc), 'application/xml');
+    if (kind === 'txt') return download(`${name}.txt`, toPlainText(doc));
+    if (kind === 'json') return download(`${name}.json`, JSON.stringify(doc, null, 2), 'application/json');
+    if (kind === 'pdf') {
+      /*
+        On the desktop the pages are rendered to a PDF and saved like any
+        other file. In a browser there is no such thing, so the print
+        preview stands in -- the writer chooses "Save as PDF" there.
+      */
+      const files = typeof window !== 'undefined' && window.kirukals?.files;
+      if (!files?.pdf) { showPrint(); return { canceled: false }; }
+      const made = await files.pdf(printHtml(doc, prefs), prefs.paper);
+      if (!made?.ok) return { canceled: false, error: made?.error };
+      return files.save(`${name}.pdf`, { base64: made.base64 }, 'pdf');
+    }
+    return undefined;
   };
+
+  // Kept current so the close handler saves the document as it stands now.
+  flushSaveRef.current = () => flushSave(doc);
 
   /* ---------------- the menu ---------------- */
 
@@ -746,7 +826,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
     },
 
     { group: true, label: 'Share' },
-    { id: 'm-print', label: 'Print / Save as PDF', shortcut: 'Ctrl+P', run: () => printScript(doc, prefs) },
+    { id: 'm-print', label: 'Print / Save as PDF', shortcut: 'Ctrl+P', run: () => showPrint() },
     { id: 'm-fountain', label: 'Export Fountain (.fountain)', run: () => exportAs('fountain') },
     { id: 'm-fdx', label: 'Export Final Draft (.fdx)', run: () => exportAs('fdx') },
     { id: 'm-txt', label: 'Export plain text (.txt)', run: () => exportAs('txt') },
@@ -882,7 +962,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         setDialog('find');
       } else if (k === 'p') {
         e.preventDefault();
-        printScript(doc, prefs);
+        showPrint();
       } else if (k === 's') {
         e.preventDefault();
         flushSave(doc);
@@ -936,7 +1016,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
         prefs={prefs}
         setPrefs={setPrefs}
         onExport={exportAs}
-        onPrint={() => printScript(doc, prefs)}
+        onPrint={() => showPrint()}
         onTitlePage={() => setDialog('title')}
         onFind={() => setDialog('find')}
         onComment={() => setCommentTick((n) => n + 1)}
@@ -1043,7 +1123,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
           owner={session.name}
           backup={backup}
           onCommand={(id) => {
-            if (id === 'print') return printScript(doc, prefs);
+            if (id === 'print') return showPrint();
             if (id === 'export') return setDialog('exportpick');
             if (id === 'analyse') return setDocView('analysis');
             return setDialog(id);
@@ -1070,7 +1150,7 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
             <AnalysisReport
               doc={doc}
               stats={stats}
-              onCommand={(id) => (id === 'print' ? printScript(doc, prefs) : setDialog(id))}
+              onCommand={(id) => (id === 'print' ? showPrint() : setDialog(id))}
             />
           ) : String(docView).startsWith('pp:') ? (
             <Preproduction
@@ -1211,8 +1291,11 @@ function ScriptApp({ session, onSignOut, onGuestExpired, onOpenAdmin, onOpenProf
       {dialog === 'newdoc' && (
         <NewDocumentDialog onCreate={addDocument} onClose={() => setDialog(null)} />
       )}
+      {dialog === 'print-preview' && (
+        <PrintPreview doc={doc} prefs={prefs} onClose={() => setDialog(null)} />
+      )}
       {dialog === 'exportpick' && (
-        <ExportPickDialog onPick={exportAs} onPrint={() => printScript(doc, prefs)} onClose={() => setDialog(null)} />
+        <ExportPickDialog doc={doc} onPick={exportAs} onClose={() => setDialog(null)} />
       )}
       {dialog === 'wordcount' && (
         <WordCountDialog doc={doc} stats={stats} onClose={() => setDialog(null)} />

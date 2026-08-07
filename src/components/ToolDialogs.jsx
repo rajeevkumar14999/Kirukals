@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import TrashIcon from './TrashIcon';
 import { Modal } from './Dialogs';
 import { TYPES } from '../screenplay/elements';
 import {
@@ -390,7 +391,7 @@ export function AlternatesDialog({ element, onPick, onSave, onDelete, onClose })
             <button onClick={() => onPick(i)} title="Swap this onto the page">
               <span>{text || '(empty)'}</span>
             </button>
-            <button className="linkish" onClick={() => onDelete(i)} title="Delete this alternate">✕</button>
+            <button className="linkish" onClick={() => onDelete(i)} title="Delete this alternate"><TrashIcon /></button>
           </li>
         ))}
       </ul>
@@ -469,7 +470,7 @@ export function TaggerDialog({ element, onTag, onUntag, onClose }) {
             <li key={`${t.cat}-${t.label}-${i}`}>
               <span className={`tag tag--${t.cat.toLowerCase()}`}>{t.cat}</span>
               {t.label}
-              <button className="linkish" onClick={() => onUntag(i)} aria-label="Remove tag">✕</button>
+              <button className="linkish" onClick={() => onUntag(i)} aria-label="Remove tag"><TrashIcon /></button>
             </li>
           ))}
         </ul>

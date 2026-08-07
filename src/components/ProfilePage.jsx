@@ -17,7 +17,9 @@ import {
 } from '../community/store';
 import SubscribeDialog from './SubscribeDialog';
 import AppUpdate from './AppUpdate';
-import { PLAN, subscriptionFor } from '../billing/subscription';
+import { subscriptionFor } from '../billing/subscription';
+import { usePlans } from '../hooks/usePlans';
+import { cachedLicence, refreshLicence, licenceWording } from '../billing/licence';
 import { formatLeft, trialLeft } from '../billing/trial';
 import { scriptCountFor } from '../screenplay/storage';
 import '../styles/community.css';
@@ -45,6 +47,34 @@ const TABS = [
 
 export default function ProfilePage({ session, onExit, initialTab = 'board', initialThreadId = null, onNotificationsSeen }) {
   const [tab, setTab] = useState(initialTab);
+  /* The price comes from the website, so a change in the console reaches
+     everybody rather than waiting for the next build. */
+  const { plan: PLAN } = usePlans();
+
+  /*
+    The membership bought on the website.
+
+    Separate from `sub` below, which is this app's own UPI arrangement. They
+    are two different ways of having paid and either is enough, so both are
+    read and the one that is actually standing is the one shown.
+
+    Asked again on opening this screen: somebody who has just paid arrives here
+    to check it worked, and a cached answer from this morning is exactly the
+    wrong thing to show them.
+  */
+  const [licence, setLicence] = useState(() => cachedLicence(session.uid));
+
+  useEffect(() => {
+    let gone = false;
+    refreshLicence(session.uid).then((found) => { if (!gone) setLicence(found); });
+    return () => { gone = true; };
+  }, [session.uid]);
+
+  const until = licence.active && licence.expiresAt
+    ? new Date(licence.expiresAt).toLocaleDateString('en-IN', {
+        day: '2-digit', month: 'long', year: 'numeric',
+      })
+    : null;
   const [tick, setTick] = useState(0);
   const [composing, setComposing] = useState(false);
   const [applyingTo, setApplyingTo] = useState(null);
@@ -428,11 +458,13 @@ export default function ProfilePage({ session, onExit, initialTab = 'board', ini
               <span
                 className={[
                   'plan-card__state',
-                  sub.status === 'active' ? 'is-active' : '',
+                  licence.active || sub.status === 'active' ? 'is-active' : '',
                   sub.status === 'pending' ? 'is-pending' : '',
                 ].filter(Boolean).join(' ')}
               >
-                {sub.status === 'active'
+                {licence.active
+                  ? `Active · until ${until}`
+                  : sub.status === 'active'
                   ? `Active · ${sub.daysLeft} days left`
                   : sub.status === 'pending'
                     ? 'Waiting for approval'
@@ -445,6 +477,13 @@ export default function ProfilePage({ session, onExit, initialTab = 'board', ini
                           : 'Trial finished'}
               </span>
             </header>
+
+            {/* The sentence version, which also covers the two cases a badge
+                cannot: a licence about to run out, and one that could not be
+                checked because there is no connection. */}
+            {(licence.active || licence.expiresAt || licence.offline) && (
+              <p className="plan-card__note">{licenceWording(licence)}</p>
+            )}
 
             <ul className="plan-card__features">
               {PLAN.features.map((f) => <li key={f}>{f}</li>)}

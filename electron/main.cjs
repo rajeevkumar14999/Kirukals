@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, Menu, ipcMain, dialog } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { autoUpdater } = require('electron-updater');
@@ -155,6 +155,52 @@ function closeSplash() {
   splash = null;
 }
 
+function guardWindow(win) {
+  let letGo = false;
+  win.on('close', (event) => {
+    if (letGo) return;
+    event.preventDefault();
+    (async () => {
+      let dirty = false;
+      try {
+        dirty = await win.webContents.executeJavaScript(
+          'typeof window.__kirukalsUnsaved === "function" ? window.__kirukalsUnsaved() : false',
+        );
+      } catch {
+        // A page that cannot answer is not a reason to trap someone in it.
+        dirty = false;
+      }
+
+      if (dirty) {
+        const { response } = await dialog.showMessageBox(win, {
+          type: 'warning',
+          buttons: ['Save and close', "Don't save", 'Cancel'],
+          defaultId: 0,
+          cancelId: 2,
+          noLink: true,
+          message: 'Save your script before closing?',
+          detail: 'This script has changes that have not been written yet.',
+        });
+        if (response === 2) return; // stay open
+        if (response === 0) {
+          try {
+            await win.webContents.executeJavaScript(
+              'typeof window.__kirukalsSave === "function" ? window.__kirukalsSave() : false',
+            );
+            // Give the write a moment to reach the disk before the page dies.
+            await new Promise((r) => setTimeout(r, 250));
+          } catch {
+            /* if it cannot be saved, closing anyway is what they chose */
+          }
+        }
+      }
+
+      letGo = true;
+      win.close();
+    })();
+  });
+}
+
 function createWindow() {
   const state = readState();
 
@@ -246,6 +292,11 @@ function createWindow() {
     win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
   }
 
+  // Ask before closing on unwritten work. Attached for both dev and the
+  // packaged app -- it lived inside the else above, so it was never on in
+  // development and could not be tried there.
+  guardWindow(win);
+
   return win;
 }
 
@@ -274,6 +325,106 @@ if (!app.requestSingleInstanceLock()) {
   // The renderer asks; the main process does. Nothing updates behind anyone's
   // back — a download starts only when someone presses the button.
   ipcMain.handle('app:version', () => app.getVersion());
+
+  /**
+   * Closing the window on unwritten work.
+   *
+   * The app autosaves, so nearly every close has nothing to lose and goes
+   * straight through — a dialog that appears when there is nothing to save
+   * only teaches people to dismiss it unread, and then the one that mattered
+   * gets dismissed too. When there genuinely is unwritten work the writer is
+   * given the three answers this question always has: save and go, discard and
+   * go, or stay. Cancel is the default, because a window closed by accident
+   * should cost nothing.
+   */
+
+  /**
+   * Exporting, the way a desktop application does it.
+   *
+   * On the web an export is a blob and a hidden link, and the browser drops
+   * the file into Downloads. In a packaged app that same trick fails silently
+   * — there is no browser to catch the click — which is why export appeared to
+   * do nothing. So the desktop asks the operating system for a save dialog,
+   * the writer picks the folder and the name, and the file is written by the
+   * main process. That is what Final Draft does, and it is what people expect:
+   * they choose where their script goes.
+   */
+  ipcMain.handle('export:save', async (event, { filename, text, kind }) => {
+    const owner = BrowserWindow.fromWebContents(event.sender);
+    const ext = String(filename || '').split('.').pop().toLowerCase();
+    const names = {
+      fountain: 'Fountain screenplay',
+      fdx: 'Final Draft document',
+      txt: 'Plain text',
+      json: 'Kirukals backup',
+      pdf: 'PDF document',
+    };
+    const filters = [
+      { name: names[ext] || names[kind] || 'File', extensions: [ext || 'txt'] },
+      { name: 'All files', extensions: ['*'] },
+    ];
+
+    const { canceled, filePath } = await dialog.showSaveDialog(owner, {
+      title: 'Export script',
+      defaultPath: path.join(app.getPath('documents'), filename),
+      filters,
+      // Losing a draft to a mistyped name that matched an old file is the kind
+      // of thing a writer never forgives, so the overwrite warning stays.
+      properties: ['createDirectory', 'showOverwriteConfirmation'],
+    });
+
+    if (canceled || !filePath) return { ok: false, canceled: true };
+
+    try {
+      // Base64 is how binary (a PDF) survives the trip across IPC; text comes
+      // through as itself so a script is never mangled by an encoding round.
+      const data = typeof text === 'string' ? Buffer.from(text, 'utf8') : Buffer.from(text.base64, 'base64');
+      fs.writeFileSync(filePath, data);
+      return { ok: true, path: filePath };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  /**
+   * A PDF, as a file rather than a trip through the printer.
+   *
+   * Exporting a PDF used to mean opening the print dialog and asking the
+   * writer to find "Save as PDF" in a printer list and set the margins to
+   * None. That is a lot to ask for the format a script is most often sent in.
+   * The page is rendered offscreen here and printed straight to a file, so
+   * export gives back a PDF the same way it gives back a Fountain file.
+   */
+  ipcMain.handle('export:pdf', async (event, { html, paper }) => {
+    const sheet = new BrowserWindow({
+      show: false,
+      webPreferences: { offscreen: true, javascript: false },
+    });
+    try {
+      await sheet.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+      // Fonts and page breaks need a moment to settle, or the first sheet
+      // comes out measured in whatever was on screen a frame earlier.
+      await new Promise((r) => setTimeout(r, 400));
+      const pdf = await sheet.webContents.printToPDF({
+        pageSize: paper === 'a4' ? 'A4' : 'Letter',
+        // The margins are already in the page itself — the 1.5in binding edge
+        // a script is required to have. Letting the printer add its own on top
+        // would push every line half an inch inwards.
+        margins: { marginType: 'none' },
+        printBackground: true,
+      });
+      return { ok: true, base64: pdf.toString('base64') };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    } finally {
+      sheet.destroy();
+    }
+  });
+
+  // "Show me where it went" — the file, selected, in Explorer or Finder.
+  ipcMain.handle('export:reveal', (_event, filePath) => {
+    shell.showItemInFolder(filePath);
+  });
 
   // Open the sign-in page in the person's real browser, where they are
   // probably already signed in to Google.

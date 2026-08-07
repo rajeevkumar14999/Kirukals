@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import TrashIcon from './TrashIcon';
 import {
   PLANS,
   castFor,
@@ -156,7 +157,7 @@ export default function ShootPlanSheet({ doc, stats, board, onChange, onJump }) 
                     setOpenId(days.find((d) => d.id !== day.id)?.id || null);
                   }}
                 >
-                  ✕
+                  <TrashIcon />
                 </button>
               </header>
 

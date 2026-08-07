@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import TrashIcon from './TrashIcon';
 import Attachment from './Attachment';
 import SheetRow from './SheetRow';
 import {
@@ -170,7 +171,7 @@ export default function CostumeSheet({ doc, stats, board, onChange, onJump, onNo
                               title="Remove this change"
                               onClick={() => setLooks(person, looks.filter((l) => l.id !== look.id))}
                             >
-                              ✕
+                              <TrashIcon />
                             </button>
                           </header>
 
@@ -206,7 +207,7 @@ export default function CostumeSheet({ doc, stats, board, onChange, onJump, onNo
                                         })
                                       }
                                     >
-                                      ✕
+                                      <TrashIcon />
                                     </button>
                                   </span>
                                 </header>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import TrashIcon from './TrashIcon';
 import Attachment from './Attachment';
 import {
   extractCast,
@@ -119,7 +120,7 @@ function Options({ rows, chosen, onAdd, onChoose, onDrop, children, addLabel }) 
               >
                 {chosen === option.id ? '✓ Chosen' : 'Choose'}
               </button>
-              <button className="linkish" onClick={() => onDrop(option.id)} title="Remove this option">✕</button>
+              <button className="linkish" onClick={() => onDrop(option.id)} title="Remove this option"><TrashIcon /></button>
             </span>
           </header>
           {children(option)}

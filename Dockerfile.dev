@@ -1,0 +1,39 @@
+# syntax=docker/dockerfile:1
+
+# The web app, in a box, for development.
+#
+# Development rather than production on purpose: this is the editor being
+# worked on, so a save should show up in the browser rather than wait for a
+# rebuild. The production build is a different job — `npm run build` puts a
+# static site in dist/ and any web server will serve it.
+#
+# node_modules is installed inside the image and kept there by an anonymous
+# volume in compose. The copy on the Windows host has Windows binaries in it,
+# and letting those show through the mount is how you get an esbuild that
+# refuses to run.
+
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Its own layer, so editing a component does not reinstall the internet.
+COPY package.json package-lock.json ./
+
+# `npm install`, not `npm ci`.
+#
+# ci is the right tool — it installs exactly the lockfile and nothing else —
+# but this lockfile is out of step with package.json (two @emnapi alpha
+# packages are missing from it), so ci refuses outright. install resolves what
+# is missing and carries on.
+#
+# The cost is that this container may not have byte-identical dependencies to
+# the host. Worth fixing at source with `npm install` on the host and
+# committing the lockfile; then this line can go back to `npm ci`.
+RUN npm install --no-audit --no-fund
+
+COPY . .
+
+# Vite binds to localhost by default, which inside a container means nothing
+# outside the container can reach it.
+EXPOSE 5173
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

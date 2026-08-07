@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import TrashIcon from './TrashIcon';
 import Attachment from './Attachment';
 import { SLIDES, buildSlides, emptyDeck, printDeck } from '../screenplay/deck';
 import { readImageFile } from '../screenplay/preproduction';
@@ -167,7 +168,7 @@ export default function DeckSheet({ doc, stats, board, onChange, onNotice }) {
                   title="Remove"
                   onClick={() => write({ look: deck.look.filter((_, n) => n !== i) })}
                 >
-                  ✕
+                  <TrashIcon />
                 </button>
               </figure>
             ))}

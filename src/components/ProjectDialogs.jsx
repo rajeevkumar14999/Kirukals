@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import TrashIcon from './TrashIcon';
 import { Modal } from './Dialogs';
 import { IMPORT_ACCEPT } from '../screenplay/import';
 import { canPickFolder, forgetFolder, pickFolder } from '../screenplay/backup';
@@ -49,7 +50,7 @@ export function PortfolioDialog({ index, currentId, onOpen, onDelete, onNew, onI
               </span>
             </button>
             {f.id !== currentId && (
-              <button className="linkish" title="Delete this script" onClick={() => onDelete(f.id)}>✕</button>
+              <button className="linkish" title="Delete this script" onClick={() => onDelete(f.id)}><TrashIcon /></button>
             )}
           </li>
         ))}
@@ -147,25 +148,75 @@ const FORMATS = [
   ['json', 'Backup (.json)', 'Everything, including comments, tags and notes. Only Kirukals reads it.'],
 ];
 
-export function ExportPickDialog({ onPick, onPrint, onClose }) {
+/**
+ * Export, in the order a writer thinks about it.
+ *
+ * Name the file, choose what kind of file it is, then say where it goes. The
+ * last part belongs to the operating system — a save dialog the writer already
+ * knows how to drive, which opens in the folder their scripts live in. Picking
+ * a format and picking a folder are two different decisions, and a dialog that
+ * folds them together makes the writer answer both at once.
+ */
+export function ExportPickDialog({ doc, onPick, onClose }) {
+  const suggested = ((doc?.titlePage?.title || doc?.name || 'Untitled')
+    .replace(/[\\/:*?"<>|]+/g, '')
+    .trim()) || 'Untitled';
+  const [name, setName] = useState(suggested);
+  const [kind, setKind] = useState('pdf');
+  const [working, setWorking] = useState(false);
+
+  const KINDS = [
+    ['pdf', 'PDF', 'For sending to anyone. The pages exactly as they print.'],
+    ['fountain', 'Fountain (.fountain)', 'Plain text any screenwriting app can read.'],
+    ['fdx', 'Final Draft (.fdx)', 'Opens in Final Draft.'],
+    ['txt', 'Plain text (.txt)', 'The words, without the formatting.'],
+    ['json', 'Kirukals backup (.json)', 'Everything, to restore later.'],
+  ];
+  const note = KINDS.find(([id]) => id === kind)?.[2];
+
+  const go = async () => {
+    setWorking(true);
+    try {
+      const res = await onPick(kind, (name || 'Untitled').trim());
+      // Backing out of the save dialog returns you here, with the filename
+      // still typed, rather than throwing the whole thing away.
+      if (res && res.canceled) return;
+      onClose();
+    } finally {
+      setWorking(false);
+    }
+  };
+
   return (
     <Modal title="Export" onClose={onClose}>
-      <ul className="exportpick">
-        <li>
-          <button onClick={() => { onPrint(); onClose(); }}>
-            <b>PDF</b>
-            <span>Opens the print dialog — choose “Save as PDF”, margins None.</span>
-          </button>
-        </li>
-        {FORMATS.map(([id, label, note]) => (
-          <li key={id}>
-            <button onClick={() => { onPick(id); onClose(); }}>
-              <b>{label}</b>
-              <span>{note}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      <div className="form">
+        <label>
+          <span>Filename</span>
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !working) go(); }}
+            placeholder="Untitled"
+          />
+        </label>
+
+        <label>
+          <span>File type</span>
+          <select value={kind} onChange={(e) => setKind(e.target.value)}>
+            {KINDS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+          </select>
+        </label>
+
+        <p className="hint">{note}</p>
+      </div>
+
+      <div className="modal__actions">
+        <button className="btn" onClick={onClose} disabled={working}>Cancel</button>
+        <button className="btn btn--primary" onClick={go} disabled={working || !name.trim()}>
+          {working ? 'Exporting…' : 'Export'}
+        </button>
+      </div>
     </Modal>
   );
 }

@@ -1,0 +1,27 @@
+# Secrets never enter a layer. A layer survives being deleted in a later step,
+# so anything copied in once is in every copy of that image for good. .env
+# arrives at run time through compose instead.
+.env
+.env.*.local
+
+# Built on the host, for the host. Copying a Windows node_modules into a Linux
+# image gets you native binaries for the wrong operating system, and the
+# failure shows up much later than it should.
+node_modules
+dist
+dist-electron
+release
+build
+
+.git
+.github
+.vscode
+.claude
+
+# The installers are ninety-odd megabytes each and belong nowhere near a build
+# context.
+*.exe
+*.dmg
+*.zip
+
+*.md
