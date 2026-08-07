@@ -1,0 +1,36 @@
+# The screenplay editor, in Docker.
+#
+#   docker compose up --build -d
+#
+# Then http://localhost:5373.
+#
+# 5373 rather than Vite's own 5173, which the logistics ERP container is
+# already holding, and rather than 5273, which is the Kirukals site. Nothing
+# else has to stop for this to run.
+
+name: scriptwriter
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    # VITE_* values are read at start-up by the dev server, so they arrive at
+    # run time here rather than being baked in. A production build would need
+    # them as build arguments instead.
+    env_file: .env
+    environment:
+      # Bind mounts on Windows do not deliver filesystem events into a Linux
+      # container, so the watcher has to look rather than listen. Costs a
+      # little idle CPU; buys hot reload working at all.
+      CHOKIDAR_USEPOLLING: 'true'
+      WATCHPACK_POLLING: 'true'
+    ports:
+      - '5373:5173'
+    volumes:
+      - .:/app
+      # Kept inside the container. The host's copies were built by Windows and
+      # would break esbuild and rollup the moment they showed through.
+      - /app/node_modules
+      - /app/dist
+    restart: unless-stopped
