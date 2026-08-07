@@ -1075,3 +1075,12 @@ kbd {
   border-radius: 8px; padding: 14px;
 }
 .preview__paper iframe { border: 0; display: block; background: transparent; }
+
+/* The membership said in a sentence, under the badge. A badge can carry a
+   date; it cannot carry "ends in two days" or "could not be checked". */
+.plan-card__note {
+  margin: 10px 0 0;
+  color: var(--muted, #99a1ae);
+  font-size: 13px;
+  line-height: 1.5;
+}
